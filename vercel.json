@@ -3,6 +3,18 @@
         {
             "source": "/api",
             "destination": "https://script.google.com/macros/s/AKfycbwygXAWi9n5HF7PF5bf3QrA5bUD0lZJlhLLeruCsVQn3GngJ2x4dK__penZonXuK4dwAQ/exec"
+        },
+        {
+            "source": "/admin",
+            "destination": "/admin/index.html"
+        },
+        {
+            "source": "/admin.html",
+            "destination": "/admin/index.html"
+        },
+        {
+            "source": "/",
+            "destination": "/frontend/index.html"
         }
     ]
 }
