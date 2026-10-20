@@ -1,368 +1,96 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TK27 Ogun State Portal & Admin Analytics</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TK27 Ogun State Coordinator Collection</title>
+  <link rel="stylesheet" href="/assets/style.css">
 </head>
 
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
-
-  <!-- Header Navigation -->
-  <header class="bg-indigo-900 text-white shadow-md py-4 px-6">
-    <div class="max-w-4xl mx-auto flex justify-between items-center">
-      <h1 class="font-bold text-lg">TK27 Ogun Portal</h1>
-      <div class="space-x-2">
-        <button onclick="switchTab('form')" id="tab-form-btn"
-          class="px-3 py-1.5 text-xs font-bold bg-indigo-700 rounded-lg cursor-pointer">Registration</button>
-        <button onclick="switchTab('admin')" id="tab-admin-btn"
-          class="px-3 py-1.5 text-xs font-bold hover:bg-indigo-800 rounded-lg cursor-pointer text-indigo-200">Admin
-          Dashboard</button>
+<body>
+  <div class="shell">
+    <header class="brand">
+      <div class="brand-mark">TK</div>
+      <div>
+        <h1>TK27 Ogun State</h1>
+        <p>Coordinator Data Collection Portal</p>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Main Container -->
-  <main class="max-w-4xl w-full mx-auto p-4 md:p-6 my-auto">
+    <div id="systemStatus" class="status info">Loading system and locations…</div>
 
-    <!-- SECTION 1: REGISTRATION FORM -->
-    <div id="section-form" class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 md:p-8">
-      <div class="mb-6">
-        <h2 class="text-2xl font-black text-slate-900">Coordinator Registration</h2>
-        <p class="text-sm text-slate-500 mt-1">Select your administrative assignment and enter your details.</p>
-      </div>
-
-      <div id="loading-geo" class="py-12 text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent">
-        </div>
-        <p class="text-sm text-slate-500 mt-3">Loading geographic database (Ogun State)...</p>
-      </div>
-
-      <form id="coordinator-form" class="space-y-5 hidden" onsubmit="handleFormSubmit(event)">
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Full Name</label>
-          <input type="text" id="name" required
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
-            placeholder="e.g. Adebayo Ogunlesi">
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Position</label>
-            <select id="position" required
-              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none bg-white">
-              <option value="">Select Position...</option>
-              <option value="STATE_EXCO">State Exco</option>
-              <option value="LGA_COORDINATOR">LGA Coordinator</option>
-              <option value="WARD_COORDINATOR">Ward Coordinator</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Phone Number</label>
-            <input type="tel" id="phone" required
-              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
-              placeholder="08000000000">
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Local Government Area
-            (LGA)</label>
-          <select id="lga-select" required onchange="onLgaChange()"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none bg-white">
-            <option value="">Select LGA...</option>
+    <div class="card">
+      <form id="coordinatorForm" novalidate>
+        <div class="field">
+          <label for="position">Position <span>*</span></label>
+          <select id="position" required>
+            <option value="">Select position</option>
+            <option value="STATE_EXCO">State Exco</option>
+            <option value="LGA_COORDINATOR">LGA Coordinator</option>
+            <option value="WARD_COORDINATOR">Ward Coordinator</option>
           </select>
+          <span class="error" data-error-for="position"></span>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Registration Ward</label>
-          <select id="ward-select" required disabled onchange="onWardChange()"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none bg-white disabled:bg-slate-100 disabled:text-slate-400">
-            <option value="">Select Ward First...</option>
+        <div class="field">
+          <label for="name">Full Name <span>*</span></label>
+          <input type="text" id="name" placeholder="Enter full name" required>
+          <span class="error" data-error-for="name"></span>
+        </div>
+
+        <div class="field">
+          <label for="phone">Phone Number <span>*</span></label>
+          <input type="tel" id="phone" placeholder="e.g., 08012345678" required>
+          <span class="error" data-error-for="phone"></span>
+        </div>
+
+        <div class="field">
+          <label for="lga">Local Government Area (LGA) <span>*</span></label>
+          <select id="lga" required disabled>
+            <option value="">Loading LGAs…</option>
           </select>
+          <span class="error" data-error-for="lga"></span>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Polling Unit</label>
-          <select id="pu-select" required disabled
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none bg-white disabled:bg-slate-100 disabled:text-slate-400">
-            <option value="">Select Polling Unit First...</option>
+        <div class="field">
+          <label for="ward">Ward <span>*</span></label>
+          <select id="ward" required disabled>
+            <option value="">Select LGA first</option>
           </select>
+          <span class="error" data-error-for="ward"></span>
         </div>
 
-        <div>
-          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Optional Notes /
-            Remarks</label>
-          <textarea id="notes" rows="2"
-            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
-            placeholder="Any additional comments..."></textarea>
+        <div class="field">
+          <label for="pollingUnit">Polling Unit <span>*</span></label>
+          <select id="pollingUnit" required disabled>
+            <option value="">Select ward first</option>
+          </select>
+          <span class="error" data-error-for="pollingUnit"></span>
         </div>
 
-        <button type="submit" id="submit-btn"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all cursor-pointer">
-          Submit Registration
+        <button type="submit" id="submitBtn" class="btn primary" disabled>
+          <span class="spinner" hidden></span>
+          <span class="btn-text">Submit Record</span>
         </button>
       </form>
-
-      <!-- Success State -->
-      <div id="success-state" class="hidden text-center py-6 space-y-4">
-        <div
-          class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
-          ✓</div>
-        <h3 class="text-2xl font-black text-slate-900">Registration Successful!</h3>
-        <p class="text-sm text-slate-600">Thank you for registering. Your deployment data has been verified and logged
-          successfully.</p>
-
-        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left max-w-sm mx-auto space-y-2">
-          <div class="text-xs text-slate-400 font-bold uppercase">Assigned Unique Record ID</div>
-          <div id="result-record-id" class="font-mono text-indigo-600 font-bold text-lg select-all">REC-XXXXXXXXXX</div>
-        </div>
-
-        <button onclick="resetForm()"
-          class="mt-4 px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm rounded-xl transition-all cursor-pointer">
-          Register Another Coordinator
-        </button>
-      </div>
     </div>
 
-    <!-- SECTION 2: ADMIN ANALYTICS DASHBOARD -->
-    <div id="section-admin" class="hidden bg-white rounded-2xl shadow-xl border border-slate-100 p-6 md:p-8">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-2xl font-black text-slate-900">System Analytics Dashboard</h2>
-          <p class="text-sm text-slate-500 mt-1">Real-time telemetry and submission tracking.</p>
-        </div>
-        <button onclick="fetchAnalytics()"
-          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg cursor-pointer">Refresh
-          Data</button>
-      </div>
-
-      <!-- Metrics Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
-          <div class="text-xs font-bold text-indigo-600 uppercase">Total Submissions</div>
-          <div id="stat-total" class="text-3xl font-black text-indigo-900 mt-1">0</div>
-        </div>
-        <div class="bg-amber-50 border border-amber-100 p-4 rounded-xl">
-          <div class="text-xs font-bold text-amber-600 uppercase">Pending Review</div>
-          <div id="stat-pending" class="text-3xl font-black text-amber-900 mt-1">0</div>
-        </div>
-        <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-xl">
-          <div class="text-xs font-bold text-emerald-600 uppercase">Verified Records</div>
-          <div id="stat-verified" class="text-3xl font-black text-emerald-900 mt-1">0</div>
-        </div>
-      </div>
-
-      <!-- LGA Breakdown Table -->
+    <div id="successCard" class="card success-card" hidden>
+      <div class="success-icon">✓</div>
+      <h2>Submission Successful</h2>
+      <p>Your coordinator record has been successfully registered and verified.</p>
+      <div class="reference" id="reference">REC-XXXXXXXXXX</div>
       <div>
-        <h3 class="font-bold text-slate-800 mb-3 text-sm uppercase tracking-wider">Submissions by LGA</h3>
-        <div class="border border-slate-200 rounded-xl overflow-hidden">
-          <table class="w-full text-left border-collapse text-sm">
-            <thead class="bg-slate-100 text-slate-600 font-bold">
-              <tr>
-                <th class="p-3">Local Government Area</th>
-                <th class="p-3 text-right">Count</th>
-              </tr>
-            </thead>
-            <tbody id="lga-analytics-table" class="divide-y divide-slate-200">
-              <tr>
-                <td colspan="2" class="p-4 text-center text-slate-400">Loading analytics...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <button type="button" id="addAnother" class="btn secondary">Register Another Record</button>
       </div>
     </div>
 
-  </main>
-
-  <footer class="text-center py-6 text-xs text-slate-400">
-    TK27 Ogun State Infrastructure &copy; 2026
-  </footer>
-
-  <script>
-    const CONFIG = {
-      WEB_APP_URL: "https://script.google.com/macros/s/AKfycbwygXAWi9n5HF7PF5bf3QrA5bUD0lZJlhLLeruCsVQn3GngJ2x4dK__penZonXuK4dwAQ/exec",
-      API_KEY: "5N25YGJWA9"
-    };
-
-    let geographyData = [];
-
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchGeography();
-    });
-
-    function switchTab(tab) {
-      const formSec = document.getElementById('section-form');
-      const adminSec = document.getElementById('section-admin');
-      const formBtn = document.getElementById('tab-form-btn');
-      const adminBtn = document.getElementById('tab-admin-btn');
-
-      if (tab === 'form') {
-        formSec.classList.remove('hidden');
-        adminSec.classList.add('hidden');
-        formBtn.className = "px-3 py-1.5 text-xs font-bold bg-indigo-700 rounded-lg cursor-pointer";
-        adminBtn.className = "px-3 py-1.5 text-xs font-bold hover:bg-indigo-800 rounded-lg cursor-pointer text-indigo-200";
-      } else {
-        formSec.classList.add('hidden');
-        adminSec.classList.remove('hidden');
-        adminBtn.className = "px-3 py-1.5 text-xs font-bold bg-indigo-700 rounded-lg cursor-pointer";
-        formBtn.className = "px-3 py-1.5 text-xs font-bold hover:bg-indigo-800 rounded-lg cursor-pointer text-indigo-200";
-        fetchAnalytics();
-      }
-    }
-
-    async function fetchGeography() {
-      const cached = localStorage.getItem('TK27_GEO_CACHE');
-      if (cached) {
-        geographyData = JSON.parse(cached);
-        initDropdowns();
-        return;
-      }
-      try {
-        const res = await fetch(`${CONFIG.WEB_APP_URL}?action=getGeography&key=${CONFIG.API_KEY}`);
-        const json = await res.json();
-        if (json.status === 'SUCCESS') {
-          geographyData = json.data;
-          localStorage.setItem('TK27_GEO_CACHE', JSON.stringify(geographyData));
-          initDropdowns();
-        }
-      } catch (err) {
-        alert('Error loading geography.');
-      }
-    }
-
-    function initDropdowns() {
-      const lgaSelect = document.getElementById('lga-select');
-      lgaSelect.innerHTML = '<option value="">Select LGA...</option>';
-      geographyData.sort((a, b) => a.name.localeCompare(b.name)).forEach(lga => {
-        const opt = document.createElement('option');
-        opt.value = lga.code;
-        opt.textContent = lga.name;
-        lgaSelect.appendChild(opt);
-      });
-      document.getElementById('loading-geo').classList.add('hidden');
-      document.getElementById('coordinator-form').classList.remove('hidden');
-    }
-
-    function onLgaChange() {
-      const lgaCode = document.getElementById('lga-select').value;
-      const wardSelect = document.getElementById('ward-select');
-      const puSelect = document.getElementById('pu-select');
-      wardSelect.innerHTML = '<option value="">Select Ward...</option>';
-      puSelect.innerHTML = '<option value="">Select Polling Unit First...</option>';
-      puSelect.disabled = true;
-      if (!lgaCode) { wardSelect.disabled = true; return; }
-
-      const lga = geographyData.find(l => l.code === lgaCode);
-      if (lga) {
-        lga.wards.sort((a, b) => a.name.localeCompare(b.name)).forEach(w => {
-          const opt = document.createElement('option');
-          opt.value = w.code; opt.textContent = w.name;
-          wardSelect.appendChild(opt);
-        });
-        wardSelect.disabled = false;
-      }
-    }
-
-    function onWardChange() {
-      const lgaCode = document.getElementById('lga-select').value;
-      const wardCode = document.getElementById('ward-select').value;
-      const puSelect = document.getElementById('pu-select');
-      puSelect.innerHTML = '<option value="">Select Polling Unit...</option>';
-      if (!wardCode) { puSelect.disabled = true; return; }
-
-      const lga = geographyData.find(l => l.code === lgaCode);
-      const ward = lga ? lga.wards.find(w => w.code === wardCode) : null;
-      if (ward) {
-        ward.pollingUnits.sort((a, b) => a.name.localeCompare(b.name)).forEach(pu => {
-          const opt = document.createElement('option');
-          opt.value = JSON.stringify({ name: pu.name, code: pu.code, fullCode: pu.fullCode });
-          opt.textContent = `${pu.name} (${pu.fullCode})`;
-          puSelect.appendChild(opt);
-        });
-        puSelect.disabled = false;
-      }
-    }
-
-    async function handleFormSubmit(event) {
-      event.preventDefault();
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true; btn.textContent = 'Submitting...';
-
-      const lgaSelect = document.getElementById('lga-select');
-      const wardSelect = document.getElementById('ward-select');
-      const puData = JSON.parse(document.getElementById('pu-select').value);
-
-      const payload = {
-        apiKey: CONFIG.API_KEY,
-        submissionKey: 'SUB-' + Math.random().toString(36).substring(2) + Date.now().toString(36),
-        state: 'Ogun', stateCode: '27',
-        name: document.getElementById('name').value,
-        position: document.getElementById('position').value,
-        phone: document.getElementById('phone').value,
-        lga: lgaSelect.options[lgaSelect.selectedIndex].text, lgaCode: lgaSelect.value,
-        ward: wardSelect.options[wardSelect.selectedIndex].text, wardCode: wardSelect.value,
-        pollingUnit: puData.name, pollingUnitCode: puData.code,
-        notes: document.getElementById('notes').value,
-        submittedAt: new Date().toISOString()
-      };
-
-      try {
-        const res = await fetch(CONFIG.WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const json = await res.json();
-        if (json.status === 'SUCCESS' || json.status === 'DUPLICATE') {
-          document.getElementById('result-record-id').textContent = json.recordId;
-          document.getElementById('section-form').querySelector('form').classList.add('hidden');
-          document.getElementById('success-state').classList.remove('hidden');
-        } else {
-          alert('Error: ' + json.message);
-          btn.disabled = false; btn.textContent = 'Submit Registration';
-        }
-      } catch (err) {
-        alert('Network error.');
-        btn.disabled = false; btn.textContent = 'Submit Registration';
-      }
-    }
-
-    async function fetchAnalytics() {
-      try {
-        const res = await fetch(`${CONFIG.WEB_APP_URL}?action=getAnalytics&key=${CONFIG.API_KEY}`);
-        const json = await res.json();
-        if (json.status === 'SUCCESS') {
-          const d = json.data;
-          document.getElementById('stat-total').textContent = d.totalSubmissions;
-          document.getElementById('stat-pending').textContent = d.pending;
-          document.getElementById('stat-verified').textContent = d.verified;
-
-          const tbody = document.getElementById('lga-analytics-table');
-          tbody.innerHTML = '';
-          const entries = Object.entries(d.lgaBreakdown);
-          if (entries.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-slate-400">No submissions recorded yet.</td></tr>';
-            return;
-          }
-          entries.sort((a, b) => b[1] - a[1]).forEach(([lga, count]) => {
-            tbody.innerHTML += `<tr class="hover:bg-slate-50"><td class="p-3 font-medium">${lga}</td><td class="p-3 text-right font-bold text-indigo-600">${count}</td></tr>`;
-          });
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    function resetForm() {
-      document.getElementById('coordinator-form').reset();
-      document.getElementById('ward-select').disabled = true;
-      document.getElementById('pu-select').disabled = true;
-      document.getElementById('success-state').classList.add('hidden');
-      document.getElementById('coordinator-form').classList.remove('hidden');
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = false; btn.textContent = 'Submit Registration';
-    }
-  </script>
+    <footer>
+      TK27 Ogun State Infrastructure &copy; 2026
+    </footer>
+  </div>
+  <script src="/assets/app.js"></script>
 </body>
 
 </html>

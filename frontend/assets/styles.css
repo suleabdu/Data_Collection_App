@@ -1,38 +1,251 @@
-:root{
-  --bg:#f5f6f7;--surface:#fff;--text:#171717;--muted:#6b7280;--border:#e5e7eb;
-  --accent:#f59e0b;--accent-hover:#d97706;--success:#15803d;--error:#dc2626;
+:root {
+  --bg: #f5f6f7;
+  --surface: #fff;
+  --text: #171717;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --success: #15803d;
+  --error: #dc2626;
 }
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg)}
-body{padding:20px 12px}
-.shell{width:min(100%,900px);margin:0 auto}
-.brand{display:flex;align-items:center;gap:14px;padding:8px 4px 18px}
-.brand-mark{display:grid;place-items:center;width:58px;height:58px;border-radius:12px;background:#171717;color:#fff;font-weight:800;letter-spacing:.5px}
-h1{font-size:1.05rem;margin:0;font-weight:800}
-.brand p{margin:4px 0 0;color:var(--muted);font-size:.92rem}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03);margin-bottom:14px}
-.status{padding:11px 12px;border-radius:9px;font-size:.88rem;margin-bottom:18px}
-.status.info{background:#f3f4f6;color:#374151}
-.status.error{background:#fef2f2;color:#991b1b}
-.status.success{background:#f0fdf4;color:#166534}
-.field{margin-bottom:16px}
-label{display:block;font-size:.9rem;font-weight:650;margin-bottom:7px}
-label span{color:var(--error)}
-input,select{width:100%;height:48px;border:1px solid #d1d5db;border-radius:9px;background:#fff;color:var(--text);padding:0 13px;font-size:1rem;outline:none}
-input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.16)}
-select:disabled,input:disabled{background:#f9fafb;color:#9ca3af}
-.error{display:block;min-height:17px;color:var(--error);font-size:.78rem;margin-top:5px}
-.btn{width:100%;min-height:48px;border:0;border-radius:9px;font-size:.96rem;font-weight:750;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn.primary{background:var(--accent);color:#171717}
-.btn.primary:hover{background:var(--accent-hover);color:#fff}
-.btn:disabled{opacity:.55;cursor:not-allowed}
-.btn.secondary{background:#171717;color:#fff}
-.spinner{width:17px;height:17px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.success-card{text-align:center;padding:30px 20px}
-.success-icon{width:52px;height:52px;border-radius:50%;background:#dcfce7;color:var(--success);display:grid;place-items:center;margin:0 auto 12px;font-size:1.5rem;font-weight:800}
-.success-card h2{margin:0 0 6px}
-.success-card p{margin:0 0 16px;color:var(--muted)}
-.reference{display:inline-block;padding:10px 14px;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;font-weight:800;letter-spacing:.4px;margin-bottom:18px}
-footer{text-align:center;color:#9ca3af;font-size:.75rem;padding:12px}
-@media(min-width:720px){body{padding:34px 20px}.card{padding:28px}.field{margin-bottom:18px}}
+
+* {
+  box-sizing: border-box
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg)
+}
+
+body {
+  padding: 20px 12px
+}
+
+.shell {
+  width: min(100%, 900px);
+  margin: 0 auto
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 4px 18px
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  background: #171717;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: .5px
+}
+
+h1 {
+  font-size: 1.05rem;
+  margin: 0;
+  font-weight: 800
+}
+
+.brand p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: .92rem
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
+  margin-bottom: 14px
+}
+
+.status {
+  padding: 11px 12px;
+  border-radius: 9px;
+  font-size: .88rem;
+  margin-bottom: 18px
+}
+
+.status.info {
+  background: #f3f4f6;
+  color: #374151
+}
+
+.status.error {
+  background: #fef2f2;
+  color: #991b1b
+}
+
+.status.success {
+  background: #f0fdf4;
+  color: #166534
+}
+
+.field {
+  margin-bottom: 16px
+}
+
+label {
+  display: block;
+  font-size: .9rem;
+  font-weight: 650;
+  margin-bottom: 7px
+}
+
+label span {
+  color: var(--error)
+}
+
+input,
+select {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  padding: 0 13px;
+  font-size: 1rem;
+  outline: none
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .16)
+}
+
+select:disabled,
+input:disabled {
+  background: #f9fafb;
+  color: #9ca3af
+}
+
+.error {
+  display: block;
+  min-height: 17px;
+  color: var(--error);
+  font-size: .78rem;
+  margin-top: 5px
+}
+
+.btn {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 9px;
+  font-size: .96rem;
+  font-weight: 750;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #171717
+}
+
+.btn.primary:hover {
+  background: var(--accent-hover);
+  color: #fff
+}
+
+.btn:disabled {
+  opacity: .55;
+  cursor: not-allowed
+}
+
+.btn.secondary {
+  background: #171717;
+  color: #fff
+}
+
+.spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(0, 0, 0, .25);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin .7s linear infinite
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg)
+  }
+}
+
+.success-card {
+  text-align: center;
+  padding: 30px 20px
+}
+
+.success-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: var(--success);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  font-size: 1.5rem;
+  font-weight: 800
+}
+
+.success-card h2 {
+  margin: 0 0 6px
+}
+
+.success-card p {
+  margin: 0 0 16px;
+  color: var(--muted)
+}
+
+.reference {
+  display: inline-block;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  margin-bottom: 18px
+}
+
+footer {
+  text-align: center;
+  color: #9ca3af;
+  font-size: .75rem;
+  padding: 12px
+}
+
+@media(min-width:720px) {
+  body {
+    padding: 34px 20px
+  }
+
+  .card {
+    padding: 28px
+  }
+
+  .field {
+    margin-bottom: 18px
+  }
+}
