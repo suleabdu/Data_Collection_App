@@ -1,11 +1,95 @@
-const $=id=>document.getElementById(id);
-const state={lga:null,ward:null,pu:null,submitting:false};
-function setStatus(msg,type=""){ $("status").innerHTML=type?`<div class="${type}">${msg}</div>`:msg; }
-function optionize(select,items,placeholder){select.innerHTML=`<option value="">${placeholder}</option>`;items.forEach(x=>{const o=document.createElement("option");o.value=x.code;o.textContent=`${x.name} (${x.code})`;select.appendChild(o)});select.disabled=false;}
-async function api(path,opts={}){const r=await fetch(`/api/${path}`,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});const j=await r.json();if(!j.success)throw new Error(j.error?.message||"Request failed.");return j.data;}
-function newSubmissionKey(){const a=crypto.getRandomValues(new Uint8Array(16));return Array.from(a,b=>b.toString(16).padStart(2,"0")).join("");}
-async function init(){try{const health=await api("health");if(health.masterStatus==="NOT_BUILT"||!health.master.pollingUnits)throw new Error("The geography master list is not ready.");const d=await api("lgas");optionize($("lga"),d,"Select Local Government");}catch(e){setStatus(e.message,"error");$("lga").disabled=true}}
-$("lga").addEventListener("change",async e=>{state.lga=e.target.value;state.ward=null;state.pu=null;$("ward").disabled=true;$("pu").disabled=true;$("ward").innerHTML='<option>Loading wards…</option>';$("pu").innerHTML='<option value="">Select Ward first</option>';if(!state.lga)return;try{optionize($("ward"),await api(`wards?lgaCode=${encodeURIComponent(state.lga)}`),"Select Ward");}catch(err){setStatus(err.message,"error")}})
-$("ward").addEventListener("change",async e=>{state.ward=e.target.value;state.pu=null;$("pu").disabled=true;$("pu").innerHTML='<option>Loading polling units…</option>';if(!state.ward)return;try{optionize($("pu"),await api(`polling-units?lgaCode=${encodeURIComponent(state.lga)}&wardCode=${encodeURIComponent(state.ward)}`),"Select Polling Unit");}catch(err){setStatus(err.message,"error")}})
-$("form").addEventListener("submit",async e=>{e.preventDefault();if(state.submitting)return;setStatus("");const data={position:$("position").value,name:$("name").value.trim(),phone:$("phone").value.trim(),lgaCode:state.lga,wardCode:state.ward,pollingUnitCode:$("pu").value,submissionKey:newSubmissionKey()};if(!data.position||!data.name||!data.phone||!data.lgaCode||!data.wardCode||!data.pollingUnitCode){setStatus("Please complete all fields.","error");return}state.submitting=true;$("submit").disabled=true;$("submit").textContent="Submitting…";try{const r=await api("submit",{method:"POST",body:JSON.stringify({data})});setStatus(`<strong>${r.message}</strong><br>Reference: <strong>${r.recordId}</strong>${r.duplicate?"<br>This record has been flagged for review.":""}`,"success");$("form").reset();$("ward").disabled=true;$("pu").disabled=true;$("ward").innerHTML='<option value="">Select LGA first</option>';$("pu").innerHTML='<option value="">Select Ward first</option>';state.lga=state.ward=state.pu=null}catch(err){setStatus(err.message,"error")}finally{state.submitting=false;$("submit").disabled=false;$("submit").textContent="Submit Record"}});
-init();
+const $ = (id) => document.getElementById(id);
+const state = { lgas: [], wards: [], pollingUnits: [] };
+
+async function api(action, options = {}) {
+  const params = new URLSearchParams(options.params || {});
+  params.set("action", action);
+  const url = `/api?${params.toString()}`;
+  const res = await fetch(url, {
+    method: options.method || "GET",
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  let data;
+  try { data = await res.json(); } catch { throw new Error("Server returned an invalid response."); }
+  if (!res.ok || !data.success) throw new Error(data?.error?.message || "Request failed.");
+  return data.data;
+}
+
+function setStatus(message, type = "info") {
+  const el = $("systemStatus"); el.textContent = message; el.className = `status ${type}`;
+}
+function clearErrors() { document.querySelectorAll(".error").forEach(e => e.textContent = "") }
+function error(id, msg) { document.querySelector(`[data-error-for="${id}"]`).textContent = msg }
+function fillSelect(select, items, placeholder, valueKey = "code", labelKey = "name") {
+  select.innerHTML = `<option value="">${placeholder}</option>`;
+  items.forEach(item => {
+    const o = document.createElement("option"); o.value = item[valueKey]; o.textContent = item[labelKey]; select.appendChild(o);
+  });
+  select.disabled = false;
+}
+function resetSelect(select, placeholder) { select.innerHTML = `<option value="">${placeholder}</option>`; select.disabled = true }
+
+async function loadLGAs() {
+  try {
+    const data = await api("getLGAs");
+    state.lgas = data.items || [];
+    fillSelect($("lga"), state.lgas, "Select local government");
+    $("submitBtn").disabled = false;
+    setStatus("Select a position and location to continue.", "info");
+  } catch (e) {
+    setStatus(e.message, "error");
+  }
+}
+$("lga").addEventListener("change", async e => {
+  resetSelect($("ward"), "Loading wards…"); resetSelect($("pollingUnit"), "Select ward first");
+  if (!e.target.value) { resetSelect($("ward"), "Select LGA first"); return }
+  try {
+    const data = await api("getWards", { params: { lgaCode: e.target.value } });
+    state.wards = data.items || []; fillSelect($("ward"), state.wards, "Select ward");
+  } catch (err) { setStatus(err.message, "error") }
+});
+$("ward").addEventListener("change", async e => {
+  resetSelect($("pollingUnit"), "Loading polling units…");
+  if (!e.target.value) { resetSelect($("pollingUnit"), "Select ward first"); return }
+  try {
+    const data = await api("getPollingUnits", { params: { lgaCode: $("lga").value, wardCode: e.target.value } });
+    state.pollingUnits = data.items || []; fillSelect($("pollingUnit"), state.pollingUnits, "Select polling unit");
+  } catch (err) { setStatus(err.message, "error") }
+});
+
+function validate() {
+  clearErrors(); let ok = true;
+  if (!$("position").value) { error("position", "Please select a position."); ok = false }
+  if ($("name").value.trim().length < 2) { error("name", "Enter the full name."); ok = false }
+  if ($("phone").value.trim().length < 7) { error("phone", "Enter a valid phone number."); ok = false }
+  if (!$("lga").value) { error("lga", "Please select an LGA."); ok = false }
+  if (!$("ward").value) { error("ward", "Please select a ward."); ok = false }
+  if (!$("pollingUnit").value) { error("pollingUnit", "Please select a polling unit."); ok = false }
+  return ok;
+}
+
+$("coordinatorForm").addEventListener("submit", async e => {
+  e.preventDefault(); if (!validate()) return;
+  const btn = $("submitBtn"), text = btn.querySelector(".btn-text"), spin = btn.querySelector(".spinner");
+  btn.disabled = true; text.textContent = "Submitting…"; spin.hidden = false;
+  try {
+    const data = await api("submitCoordinator", {
+      method: "POST", body: {
+        position: $("position").value, name: $("name").value.trim(), phone: $("phone").value.trim(),
+        lgaCode: $("lga").value, wardCode: $("ward").value, pollingUnitCode: $("pollingUnit").value
+      }
+    });
+    $("reference").textContent = data.recordId;
+    $("coordinatorForm").closest(".card").hidden = true;
+    $("successCard").hidden = false;
+  } catch (err) {
+    setStatus(err.message, "error"); window.scrollTo({ top: 0, behavior: "smooth" });
+  } finally { btn.disabled = false; text.textContent = "Submit Record"; spin.hidden = true }
+});
+$("addAnother").addEventListener("click", () => {
+  $("coordinatorForm").reset(); clearErrors(); resetSelect($("ward"), "Select LGA first"); resetSelect($("pollingUnit"), "Select ward first");
+  $("successCard").hidden = true; $("coordinatorForm").closest(".card").hidden = false;
+  setStatus("Ready for another record.", "success"); window.scrollTo({ top: 0, behavior: "smooth" });
+});
+loadLGAs();
