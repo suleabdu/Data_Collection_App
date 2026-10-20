@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TK27 Admin</title><link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+<header><div><strong>TK27 / ADMIN</strong><span>Ogun State Coordinator Collection</span></div><button id="logout" class="ghost" hidden>Log out</button></header>
+
+<section id="loginCard" class="card login">
+<h1>Administrator access</h1><p>Use the configured admin key. Do not share it.</p>
+<input id="adminKey" type="password" placeholder="Admin key" autocomplete="current-password">
+<button id="login" class="btn">Sign in</button><div id="loginMsg" class="msg"></div>
+</section>
+
+<main id="dashboard" hidden>
+<section class="stats" id="stats"></section>
+<section class="card">
+<h2>Master Geography</h2><div id="masterStatus" class="status">Checking…</div>
+<div class="actions">
+<button id="build" class="btn">Build / Refresh Master List</button>
+<button id="validate" class="btn secondary">Validate Master List</button>
+</div>
+<p class="hint">Automatic source import is used only when a verified source URL is configured. Otherwise upload an official CSV below.</p>
+<input id="csvFile" type="file" accept=".csv,text/csv">
+<button id="upload" class="btn secondary">Upload Official CSV</button>
+<div id="importMsg" class="msg"></div>
+</section>
+
+<section class="card">
+<h2>Records</h2>
+<div class="actions">
+<button id="refresh" class="btn secondary">Refresh Records</button>
+<button id="export" class="btn">Export CSV</button>
+</div>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Position</th><th>LGA</th><th>Ward</th><th>Phone</th><th>Status</th></tr></thead><tbody id="records"></tbody></table></div>
+</section>
+</main>
+</div>
+<script src="/assets/admin.js"></script>
+</body>
+</html>
