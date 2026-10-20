@@ -3,7 +3,6 @@ export default async function handler(req, res) {
     const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwygXAWi9n5HF7PF5bf3QrA5bUD0lZJlhLLeruCsVQn3GngJ2x4dK__penZonXuK4dwAQ/exec";
 
     const targetUrl = new URL(APPS_SCRIPT_URL);
-
     // Forward query parameters
     for (const [key, value] of Object.entries(req.query)) {
         if (key !== 'path') targetUrl.searchParams.append(key, value);

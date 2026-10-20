@@ -296,6 +296,12 @@
         notes: document.getElementById('notes').value,
         submittedAt: new Date().toISOString()
       };
+      // Inside handleFormSubmit(event) in public/index.html
+      const json = await safeApiCall('/api?action=submitCoordinator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
       try {
         const json = await safeApiCall('/api', {
