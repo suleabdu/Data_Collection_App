@@ -1,83 +1,532 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f59e0b">
-  <title>TK27 Ogun State Coordinator Collection</title>
-  <link rel="stylesheet" href="/assets/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TK27 Data Collection Form</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Inter Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+  </style>
 </head>
-<body>
-  <main class="shell">
-    <section class="brand">
-      <div class="brand-mark">TK27</div>
-      <div>
-        <h1>OGUN STATE</h1>
-        <p>Coordinator Data Collection</p>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-12">
+
+  <!-- Header -->
+  <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="shield-check" class="w-6 h-6 text-emerald-300"></i>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">TK27 Ogun</h1>
+          <p class="text-xs text-emerald-200">Coordinator Field Portal</p>
+        </div>
       </div>
-    </section>
+      <div class="flex items-center space-x-2">
+        <!-- Connection Status Badge -->
+        <span id="connectionBadge" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-800 text-emerald-100 border border-emerald-600">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+          Online
+        </span>
+        <!-- Endpoint Config Button -->
+        <button id="openConfigBtn" class="p-2 rounded-lg bg-emerald-800 hover:bg-emerald-600 transition text-emerald-100" title="API Settings">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
 
-    <section class="card">
-      <div id="systemStatus" class="status info" role="status">Loading location data…</div>
-      <form id="coordinatorForm" novalidate>
-        <div class="field">
-          <label for="position">Position <span>*</span></label>
-          <select id="position" required>
-            <option value="">Select position</option>
-            <option value="STATE_EXCO">State Exco</option>
-            <option value="LGA_COORDINATOR">LGA Coordinator</option>
-            <option value="WARD_COORDINATOR">Ward Coordinator</option>
-          </select>
-          <small class="error" data-error-for="position"></small>
+  <!-- Offline Queue Banner -->
+  <div id="offlineBanner" class="hidden bg-amber-500 text-white text-xs font-semibold px-4 py-2 text-center shadow-inner flex items-center justify-center space-x-2">
+    <i data-lucide="wifi-off" class="w-4 h-4"></i>
+    <span>Working Offline. Submissions will be stored locally and synced automatically when online.</span>
+  </div>
+
+  <main class="max-w-2xl mx-auto px-4 mt-6">
+    
+    <!-- Status / Queue Alert Box -->
+    <div id="queueStatusCard" class="hidden mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <i data-lucide="database" class="w-5 h-5 text-amber-600"></i>
+        <div>
+          <p class="font-semibold text-sm"><span id="queueCount">0</span> record(s) queued locally</p>
+          <p class="text-xs text-amber-700">Waiting for network connectivity</p>
+        </div>
+      </div>
+      <button id="syncNowBtn" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+        <span>Sync Now</span>
+      </button>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="alertContainer" class="hidden mb-6 p-4 rounded-xl shadow-sm text-sm border"></div>
+
+    <!-- Form Container -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="border-b border-slate-100 bg-slate-50/50 p-4">
+        <h2 class="text-base font-semibold text-slate-800 flex items-center space-x-2">
+          <i data-lucide="user-plus" class="w-5 h-5 text-emerald-600"></i>
+          <span>Register Field Coordinator</span>
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Fill out coordinator info and assign precise INEC geography.</p>
+      </div>
+
+      <form id="coordinatorForm" class="p-5 space-y-6">
+        
+        <!-- SECTION 1: Personal Details -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+            <span class="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs">1</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Personal Information</h3>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Full Name *</label>
+            <input type="text" id="fullName" required placeholder="e.g. Adebayo Olusegun"
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Position *</label>
+              <select id="position" required
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800 bg-white">
+                <option value="">Select Position...</option>
+                <option value="STATE_EXCO">STATE_EXCO</option>
+                <option value="LGA_COORDINATOR">LGA_COORDINATOR</option>
+                <option value="WARD_COORDINATOR">WARD_COORDINATOR</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Phone Number *</label>
+              <input type="tel" id="phone" required placeholder="e.g. 08012345678"
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800">
+            </div>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="name">Full Name <span>*</span></label>
-          <input id="name" type="text" autocomplete="name" maxlength="120" placeholder="Enter full name" required>
-          <small class="error" data-error-for="name"></small>
+        <!-- SECTION 2: Geographic Assignment -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+            <span class="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs">2</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Geographic Assignment</h3>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">State</label>
+              <input type="text" id="state" value="Ogun" readonly
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 font-medium text-sm outline-none cursor-not-allowed">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">State Code</label>
+              <input type="text" id="stateCode" value="27" readonly
+                class="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 font-medium text-sm outline-none cursor-not-allowed">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Local Government Area (LGA) *</label>
+            <select id="lgaSelect" required
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800 bg-white">
+              <option value="">Select LGA...</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Ward *</label>
+            <select id="wardSelect" disabled required
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800 bg-white disabled:bg-slate-100 disabled:text-slate-400">
+              <option value="">Select Ward (Choose LGA first)...</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Polling Unit *</label>
+            <select id="puSelect" disabled required
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800 bg-white disabled:bg-slate-100 disabled:text-slate-400">
+              <option value="">Select Polling Unit (Choose Ward first)...</option>
+            </select>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="phone">Phone Number <span>*</span></label>
-          <input id="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="08012345678" required>
-          <small class="error" data-error-for="phone"></small>
+        <!-- SECTION 3: Notes & Metadata -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+            <span class="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs">3</span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Additional Details</h3>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Notes (Optional)</label>
+            <textarea id="notes" rows="2" placeholder="Add any relevant remarks or field notes..."
+              class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-sm text-slate-800"></textarea>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="lga">Local Government <span>*</span></label>
-          <select id="lga" required disabled><option value="">Loading LGAs…</option></select>
-          <small class="error" data-error-for="lga"></small>
-        </div>
-
-        <div class="field">
-          <label for="ward">Ward <span>*</span></label>
-          <select id="ward" required disabled><option value="">Select LGA first</option></select>
-          <small class="error" data-error-for="ward"></small>
-        </div>
-
-        <div class="field">
-          <label for="pollingUnit">Polling Unit <span>*</span></label>
-          <select id="pollingUnit" required disabled><option value="">Select ward first</option></select>
-          <small class="error" data-error-for="pollingUnit"></small>
-        </div>
-
-        <button id="submitBtn" class="btn primary" type="submit" disabled>
-          <span class="btn-text">Submit Record</span>
-          <span class="spinner" hidden></span>
+        <!-- Submit Button -->
+        <button type="submit" id="submitBtn"
+          class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+          <i data-lucide="send" class="w-5 h-5"></i>
+          <span>Submit Record</span>
         </button>
       </form>
-    </section>
-
-    <section id="successCard" class="card success-card" hidden>
-      <div class="success-icon">✓</div>
-      <h2>Record submitted</h2>
-      <p>Your record has been received successfully.</p>
-      <div class="reference" id="reference"></div>
-      <button id="addAnother" class="btn secondary">Add Another Record</button>
-    </section>
-
-    <footer>TK27 • Ogun State Coordinator Data Collection</footer>
+    </div>
   </main>
-  <script src="/assets/app.js"></script>
+
+  <!-- Endpoint Settings Modal -->
+  <div id="configModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100">
+      <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 class="font-bold text-slate-800 flex items-center space-x-2">
+          <i data-lucide="settings" class="w-5 h-5 text-emerald-600"></i>
+          <span>Apps Script Web App Endpoint</span>
+        </h3>
+        <button id="closeConfigBtn" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Paste the Web App URL generated when you deploy your Apps Script project.
+        </p>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Web App URL</label>
+          <input type="url" id="webAppUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+            class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-mono text-slate-800">
+        </div>
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-600 space-y-1">
+          <p class="font-semibold text-slate-700">Deployment settings in Apps Script:</p>
+          <p>• Execute as: <strong>Me</strong></p>
+          <p>• Who has access: <strong>Anyone</strong></p>
+        </div>
+      </div>
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end space-x-2">
+        <button id="saveConfigBtn" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg transition shadow-sm">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- SAMPLE MOCK GEOGRAPHY DATA (Fallback) ---
+    // In production, this can be fetched dynamically or extended from MASTER_GEOGRAPHY
+    const GEOGRAPHY_DATA = {
+      "27/01": { name: "Abeokuta North", wards: {
+        "27/01/01": { name: "Ikereku", pus: [{ code: "27/01/01/001", name: "Open Space, Ikereku" }, { code: "27/01/01/002", name: "Ago Oko Town Hall" }] },
+        "27/01/02": { name: "Ikija", pus: [{ code: "27/01/02/001", name: "Court Hall Ikija" }, { code: "27/01/02/002", name: "Anglican Primary School" }] }
+      }},
+      "27/02": { name: "Abeokuta South", wards: {
+        "27/02/01": { name: "Ake I", pus: [{ code: "27/02/01/001", name: "Centenary Hall Ake" }, { code: "27/02/01/002", name: "Post Office Ake" }] },
+        "27/02/02": { name: "Ake II", pus: [{ code: "27/02/02/001", name: "Grammar School Ake" }] }
+      }},
+      "27/03": { name: "Ado-Odo/Ota", wards: {
+        "27/03/01": { name: "Ota I", pus: [{ code: "27/03/01/001", name: "Town Hall Ota" }] },
+        "27/03/02": { name: "Ota II", pus: [{ code: "27/03/02/001", name: "Ansar-Ud-Deen School Ota" }] }
+      }}
+    };
+
+    // --- STATE MANAGEMENT ---
+    const STORAGE_KEY_URL = 'TK27_WEBAPP_URL';
+    const STORAGE_KEY_QUEUE = 'TK27_OFFLINE_QUEUE';
+
+    let webAppUrl = localStorage.getItem(STORAGE_KEY_URL) || '';
+    let offlineQueue = JSON.parse(localStorage.getItem(STORAGE_KEY_QUEUE) || '[]');
+
+    // --- DOM ELEMENTS ---
+    const configModal = document.getElementById('configModal');
+    const openConfigBtn = document.getElementById('openConfigBtn');
+    const closeConfigBtn = document.getElementById('closeConfigBtn');
+    const saveConfigBtn = document.getElementById('saveConfigBtn');
+    const webAppUrlInput = document.getElementById('webAppUrlInput');
+
+    const alertContainer = document.getElementById('alertContainer');
+    const connectionBadge = document.getElementById('connectionBadge');
+    const offlineBanner = document.getElementById('offlineBanner');
+    const queueStatusCard = document.getElementById('queueStatusCard');
+    const queueCountSpan = document.getElementById('queueCount');
+    const syncNowBtn = document.getElementById('syncNowBtn');
+
+    const form = document.getElementById('coordinatorForm');
+    const lgaSelect = document.getElementById('lgaSelect');
+    const wardSelect = document.getElementById('wardSelect');
+    const puSelect = document.getElementById('puSelect');
+
+    // --- INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initGeographyDropdowns();
+      updateNetworkStatus();
+      updateQueueUI();
+
+      if (!webAppUrl) {
+        showConfigModal();
+      }
+
+      window.addEventListener('online', updateNetworkStatus);
+      window.addEventListener('offline', updateNetworkStatus);
+    });
+
+    // --- UUID V4 GENERATOR ---
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // --- GEOGRAPHY SELECT HANDLERS ---
+    function initGeographyDropdowns() {
+      lgaSelect.innerHTML = '<option value="">Select LGA...</option>';
+      Object.keys(GEOGRAPHY_DATA).forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = `${GEOGRAPHY_DATA[code].name} (${code})`;
+        lgaSelect.appendChild(opt);
+      });
+
+      lgaSelect.addEventListener('change', (e) => {
+        const lgaCode = e.target.value;
+        wardSelect.innerHTML = '<option value="">Select Ward...</option>';
+        puSelect.innerHTML = '<option value="">Select Polling Unit...</option>';
+        puSelect.disabled = true;
+
+        if (lgaCode && GEOGRAPHY_DATA[lgaCode]) {
+          wardSelect.disabled = false;
+          const wards = GEOGRAPHY_DATA[lgaCode].wards;
+          Object.keys(wards).forEach(wCode => {
+            const opt = document.createElement('option');
+            opt.value = wCode;
+            opt.textContent = `${wards[wCode].name} (${wCode})`;
+            wardSelect.appendChild(opt);
+          });
+        } else {
+          wardSelect.disabled = true;
+        }
+      });
+
+      wardSelect.addEventListener('change', (e) => {
+        const lgaCode = lgaSelect.value;
+        const wardCode = e.target.value;
+        puSelect.innerHTML = '<option value="">Select Polling Unit...</option>';
+
+        if (lgaCode && wardCode && GEOGRAPHY_DATA[lgaCode]?.wards[wardCode]) {
+          puSelect.disabled = false;
+          const pus = GEOGRAPHY_DATA[lgaCode].wards[wardCode].pus;
+          pus.forEach(pu => {
+            const opt = document.createElement('option');
+            opt.value = pu.code;
+            opt.textContent = `${pu.name} (${pu.code})`;
+            puSelect.appendChild(opt);
+          });
+        } else {
+          puSelect.disabled = true;
+        }
+      });
+    }
+
+    // --- NETWORK & QUEUE LOGIC ---
+    function updateNetworkStatus() {
+      const isOnline = navigator.onLine;
+      if (isOnline) {
+        connectionBadge.className = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-800 text-emerald-100 border border-emerald-600";
+        connectionBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>Online`;
+        offlineBanner.classList.add('hidden');
+        if (offlineQueue.length > 0) syncOfflineQueue();
+      } else {
+        connectionBadge.className = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-800 text-amber-100 border border-amber-600";
+        connectionBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 mr-1.5"></span>Offline Mode`;
+        offlineBanner.classList.remove('hidden');
+      }
+    }
+
+    function updateQueueUI() {
+      queueCountSpan.textContent = offlineQueue.length;
+      if (offlineQueue.length > 0) {
+        queueStatusCard.classList.remove('hidden');
+      } else {
+        queueStatusCard.classList.add('hidden');
+      }
+    }
+
+    function saveQueueToStorage() {
+      localStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify(offlineQueue));
+      updateQueueUI();
+    }
+
+    // --- FORM SUBMISSION ---
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!webAppUrl) {
+        showAlert('Please configure your Google Apps Script Web App URL first.', 'error');
+        showConfigModal();
+        return;
+      }
+
+      const selectedLgaCode = lgaSelect.value;
+      const selectedWardCode = wardSelect.value;
+      const selectedPuCode = puSelect.value;
+
+      const payload = {
+        submissionKey: generateUUID(),
+        name: document.getElementById('fullName').value.trim(),
+        position: document.getElementById('position').value,
+        phone: document.getElementById('phone').value.trim(),
+        state: 'Ogun',
+        stateCode: '27',
+        lga: GEOGRAPHY_DATA[selectedLgaCode]?.name || '',
+        lgaCode: selectedLgaCode,
+        ward: GEOGRAPHY_DATA[selectedLgaCode]?.wards[selectedWardCode]?.name || '',
+        wardCode: selectedWardCode,
+        pollingUnit: puSelect.options[puSelect.selectedIndex]?.text.split(' (')[0] || '',
+        pollingUnitCode: selectedPuCode,
+        notes: document.getElementById('notes').value.trim(),
+        submittedAt: new Date().toISOString()
+      };
+
+      if (!navigator.onLine) {
+        offlineQueue.push(payload);
+        saveQueueToStorage();
+        showAlert('Network unavailable. Record saved locally and queued for auto-sync.', 'warning');
+        resetForm();
+        return;
+      }
+
+      submitPayload(payload);
+    });
+
+    async function submitPayload(payload) {
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i><span>Transmitting...</span>`;
+      lucide.createIcons();
+
+      try {
+        // Content-Type text/plain prevents CORS preflight OPTIONS request
+        const response = await fetch(webAppUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        const resData = await response.json();
+
+        if (resData.status === 'SUCCESS' || resData.status === 'DUPLICATE') {
+          showAlert(resData.message || 'Coordinator registered successfully!', 'success');
+          resetForm();
+        } else {
+          showAlert(`Error: ${resData.message || 'Submission failed on server.'}`, 'error');
+        }
+      } catch (err) {
+        // Network drop mid-request fallback
+        offlineQueue.push(payload);
+        saveQueueToStorage();
+        showAlert('Connection interrupted. Submission queued locally.', 'warning');
+        resetForm();
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i data-lucide="send" class="w-5 h-5"></i><span>Submit Record</span>`;
+        lucide.createIcons();
+      }
+    }
+
+    async function syncOfflineQueue() {
+      if (!webAppUrl || offlineQueue.length === 0) return;
+
+      syncNowBtn.disabled = true;
+      syncNowBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Syncing...</span>`;
+      lucide.createIcons();
+
+      const itemsToSync = [...offlineQueue];
+      let syncedCount = 0;
+
+      for (const item of itemsToSync) {
+        try {
+          const response = await fetch(webAppUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(item)
+          });
+          const res = await response.json();
+          if (res.status === 'SUCCESS' || res.status === 'DUPLICATE') {
+            syncedCount++;
+            offlineQueue.shift(); // Remove successfully sent item
+            saveQueueToStorage();
+          }
+        } catch (e) {
+          break; // Stop loop on continuous connection failure
+        }
+      }
+
+      if (syncedCount > 0) {
+        showAlert(`Successfully synced ${syncedCount} queued record(s).`, 'success');
+      }
+
+      syncNowBtn.disabled = false;
+      syncNowBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Sync Now</span>`;
+      lucide.createIcons();
+    }
+
+    syncNowBtn.addEventListener('click', syncOfflineQueue);
+
+    function resetForm() {
+      form.reset();
+      document.getElementById('state').value = 'Ogun';
+      document.getElementById('stateCode').value = '27';
+      wardSelect.innerHTML = '<option value="">Select Ward (Choose LGA first)...</option>';
+      wardSelect.disabled = true;
+      puSelect.innerHTML = '<option value="">Select Polling Unit (Choose Ward first)...</option>';
+      puSelect.disabled = true;
+    }
+
+    // --- UI ALERTS & MODALS ---
+    function showAlert(msg, type) {
+      alertContainer.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-800',
+        'bg-rose-50', 'border-rose-200', 'text-rose-800', 'bg-amber-50', 'border-amber-200', 'text-amber-800');
+
+      if (type === 'success') {
+        alertContainer.classList.add('bg-emerald-50', 'border-emerald-200', 'text-emerald-800');
+      } else if (type === 'error') {
+        alertContainer.classList.add('bg-rose-50', 'border-rose-200', 'text-rose-800');
+      } else {
+        alertContainer.classList.add('bg-amber-50', 'border-amber-200', 'text-amber-800');
+      }
+
+      alertContainer.innerHTML = `<div class="flex items-center justify-between">
+        <span>${msg}</span>
+        <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="font-bold opacity-60 hover:opacity-100 ml-4">&times;</button>
+      </div>`;
+    }
+
+    function showConfigModal() {
+      webAppUrlInput.value = webAppUrl;
+      configModal.classList.remove('hidden');
+    }
+
+    openConfigBtn.addEventListener('click', showConfigModal);
+    closeConfigBtn.addEventListener('click', () => configModal.classList.add('hidden'));
+
+    saveConfigBtn.addEventListener('click', () => {
+      const url = webAppUrlInput.value.trim();
+      if (url && !url.startsWith('https://script.google.com/')) {
+        alert('Please enter a valid Google Apps Script Web App URL.');
+        return;
+      }
+      webAppUrl = url;
+      localStorage.setItem(STORAGE_KEY_URL, webAppUrl);
+      configModal.classList.add('hidden');
+      showAlert('Web App Endpoint updated successfully.', 'success');
+    });
+  </script>
 </body>
 </html>
