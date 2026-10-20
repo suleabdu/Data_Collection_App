@@ -120,13 +120,13 @@
       </form>
 
       <!-- Success Thank You State -->
-      <div id="success-state" class="hidden text-center py-12 space-y-4">
+      <div id="success-state" class="hidden text-center py-8 space-y-5">
         <div
           class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto text-3xl font-black shadow-lg shadow-emerald-600/10">
           ✓</div>
         <div>
           <h3 class="text-2xl font-black text-slate-900">Registration Successful!</h3>
-          <p class="text-sm text-slate-500 mt-2">Your coordinator deployment has been verified and recorded.</p>
+          <p class="text-sm text-slate-500 mt-1">Your coordinator deployment has been verified and recorded.</p>
         </div>
       </div>
     </div>
@@ -176,12 +176,12 @@
 
       try {
         const json = await safeApiCall('/api?action=getGeography');
-        if (json.status === 'SUCCESS') {
-          geographyData = json.data;
+        if (json.status === 'SUCCESS' || json.success) {
+          geographyData = json.data || [];
           localStorage.setItem('TK27_GEO_CACHE', JSON.stringify(geographyData));
           initDropdowns();
         } else {
-          alert('Failed to load geography data: ' + json.message);
+          alert('Failed to load geography data: ' + (json.message || json.error?.message));
         }
       } catch (err) {
         document.getElementById('loading-geo').innerHTML = `<p class="text-rose-600 text-sm font-bold">Error: ${err.message}</p>`;
@@ -257,6 +257,7 @@
         puSelect.className = puSelect.className.replace('bg-slate-100/70 text-slate-400', 'bg-slate-50/50 text-slate-700');
       }
     }
+
     async function handleFormSubmit(event) {
       event.preventDefault();
       const btn = document.getElementById('submit-btn');
@@ -299,13 +300,16 @@
           body: JSON.stringify(payload)
         });
 
-        // Correctly check backend standard response: { success: true, data: { recordId: "..." } }
         if (json.success && json.data) {
-          document.getElementById('result-record-id').textContent = json.data.recordId || 'REC-SUCCESS';
+          // Safely set textContent only if element exists in DOM
+          const recordEl = document.getElementById('result-record-id');
+          if (recordEl) {
+            recordEl.textContent = json.data.recordId || 'REC-SUCCESS';
+          }
+
           document.getElementById('coordinator-form').classList.add('hidden');
           document.getElementById('success-state').classList.remove('hidden');
         } else {
-          // Extract the actual error message sent by the backend
           const errorMsg = json.error?.message || json.message || 'Unknown server error';
           alert('Submission error: ' + errorMsg);
           btn.disabled = false;
@@ -316,18 +320,6 @@
         btn.disabled = false;
         btn.textContent = 'Submit Registration';
       }
-    }
-
-    function resetForm() {
-      document.getElementById('coordinator-form').reset();
-      document.getElementById('ward-select').disabled = true;
-      document.getElementById('pu-select').disabled = true;
-      document.getElementById('ward-select').className = document.getElementById('ward-select').className.replace('bg-slate-50/50 text-slate-700', 'bg-slate-100/70 text-slate-400');
-      document.getElementById('pu-select').className = document.getElementById('pu-select').className.replace('bg-slate-50/50 text-slate-700', 'bg-slate-100/70 text-slate-400');
-      document.getElementById('success-state').classList.add('hidden');
-      document.getElementById('coordinator-form').classList.remove('hidden');
-      document.getElementById('submit-btn').disabled = false;
-      document.getElementById('submit-btn').textContent = 'Submit Registration';
     }
   </script>
 </body>
