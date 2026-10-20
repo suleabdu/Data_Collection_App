@@ -1,157 +1,54 @@
-# TK27 Ogun State Coordinator Collection System
+# TK27 Ogun — Stage 3–5 build around Claude Phase 1
 
-A mobile-first public collection system with:
+This package is intentionally built around the uploaded Claude Phase 1 files and schema.
 
-**Cloudflare Pages + Pages Functions → Google Apps Script → Google Sheets**
+## What is preserved
+- `CONFIG`, `MASTER_GEOGRAPHY`, `RAW_IMPORT`, `NORMALIZED_GEOGRAPHY`, `COORDINATOR_RECORDS`, `AUDIT_LOG`, `VALIDATION_LOG`, `IMPORT_LOG`
+- 5,042 PU / 236 ward / 20 LGA master result
+- existing normalization and validation pipeline
+- safe publish rule: failed imports do not replace the previous master
+- record schema including Submission_Key, Normalized_Name, Normalized_Phone
 
-## What is included
+## Stage 3 — Apps Script API
+Add `apps-script/ApiService.gs` to the same Apps Script project. Do not create a second Apps Script project.
+It provides doGet/doPost, geography lookup, secure admin sessions, and coordinator submission.
 
-- Public mobile form
-- Cascading LGA → Ward → Polling Unit selectors
-- Server-side geography validation
-- Nigerian phone normalization
-- Duplicate flagging without silent deletion
-- Server-generated record IDs
-- Admin dashboard
-- Master geography CSV import
-- Safe master publication (failed validation preserves previous master)
-- Validation/import/audit logs
-- CSV export
-- No geography data is fabricated or bundled
+Important: this file expects the Phase 1 functions already present, including:
+`getConfig_`, `readDataRows_`, `appendRows_`, `cleanText_`, `compareKey_`, `nowIso_`, `getMasterStatus`, `validateMasterList`, `buildMasterFromWeb`, `logAudit_`.
 
-## Folder structure
+## Stage 4 — Cloudflare Pages frontend
+The `public/` directory is the static site. The `functions/api/[[path]].js` file proxies `/api/*` to Apps Script.
+Use Git integration rather than dashboard Direct Upload.
 
-```text
-frontend/
-  index.html
-  admin/index.html
-  assets/
-    app.js
-    admin.js
-    styles.css
-    admin.css
+Cloudflare:
+- root directory: `/`
+- build command: `exit 0`
+- build output directory: `public`
 
-functions/
-  api/[[path]].js
+Add environment variable:
+`TK27_APPS_SCRIPT_URL = https://script.google.com/macros/s/.../exec`
 
-apps-script/
-  Code.gs
-  Config.gs
-  Utilities.gs
-  GeographyService.gs
-  ValidationService.gs
-  DuplicateService.gs
-  SubmissionService.gs
-  MasterDataService.gs
-  AdminService.gs
-  ExportService.gs
-  Router.gs
-  Security.gs
-  Authentication.gs
-  AnalyticsService.gs
-  EmailService.gs
-  StudentService.gs
-  TutorService.gs
-  AssignmentService.gs
-  ResultService.gs
-  CourseService.gs
-```
+## Stage 5 — submission and validation
+The backend:
+- normalizes Nigerian phone numbers
+- validates position
+- validates LGA/Ward/PU against MASTER_GEOGRAPHY
+- prevents accidental double-submit using Submission_Key
+- flags potential duplicates
+- writes audit events
+- uses a script lock around writes
+- generates OG-EXCO-000001 / OG-LGA-000001 / OG-WC-000001 IDs
 
-## 1. Google Sheet
+## Apps Script deployment
+Deploy the bound script as a Web App:
+Execute as: Me
+Who has access: Anyone who needs the public form to work, according to your Google account/workspace policy.
+Use the `/exec` URL, not `/dev`.
 
-Create a blank Google Sheet named `TK27 Ogun Coordinator Database`.
+## Security
+The admin passcode is exchanged for a 6-hour opaque session token stored in Apps Script CacheService.
+Do not put the admin passcode in frontend source code or Git.
+The passcode that was previously exposed in chat should be reset before production.
 
-Open **Extensions → Apps Script**.
-
-Create the `.gs` files in `apps-script/` and paste their contents.
-
-In Apps Script **Project Settings → Script Properties**, add:
-
-- `TK27_ADMIN_KEY` = a long random secret
-- `GEOGRAPHY_SOURCE_URL` = optional; leave blank for controlled CSV import
-
-Deploy as **Web app**:
-
-- Execute as: Me
-- Who has access: Anyone
-
-Copy the deployment `/exec` URL.
-
-## 2. Master geography
-
-Do not invent or manually guess Ogun geography.
-
-The system expects an official CSV with these nine columns, in this order:
-
-```text
-State,State_Code,LGA,LGA_Code,Ward,Ward_Code,Polling_Unit,Polling_Unit_Code,Full_PU_Code
-```
-
-Use an official/authoritative source. Upload it from `/admin`, then:
-
-1. Upload Official CSV
-2. Build / Refresh Master List
-3. Validate Master List
-
-If validation fails, the previous published master is preserved.
-
-## 3. Cloudflare Pages
-
-Create a new Cloudflare Pages project from this folder.
-
-Set these environment variables/secrets:
-
-- `TK27_APPS_SCRIPT_URL` = Apps Script `/exec` URL
-- `TK27_ADMIN_KEY` = exactly the same secret used in Apps Script
-
-Deploy.
-
-Your public URL will be a normal HTTPS Pages URL, e.g.:
-
-`https://your-project.pages.dev`
-
-Public form:
-
-`https://your-project.pages.dev/`
-
-Admin:
-
-`https://your-project.pages.dev/admin/`
-
-## 4. First test
-
-Before collecting real records:
-
-- Open the public URL on Android Chrome.
-- Confirm the page loads.
-- Confirm LGA dropdown contains data after the master is published.
-- Select LGA → Ward → Polling Unit.
-- Submit a test record.
-- Confirm the record appears in `COORDINATOR_RECORDS`.
-- Confirm the generated ID.
-- Test a duplicate.
-- Test invalid geography by attempting to alter browser requests.
-- Open admin and verify stats/export/audit logs.
-
-## 5. Google Sheets tabs
-
-The backend creates:
-
-- CONFIG
-- MASTER_GEOGRAPHY
-- RAW_IMPORT
-- NORMALIZED_GEOGRAPHY
-- COORDINATOR_RECORDS
-- AUDIT_LOG
-- VALIDATION_LOG
-- IMPORT_LOG
-
-## Important
-
-The frontend never contains the admin secret.
-
-The Cloudflare function validates the admin session and injects the secret only server-side when communicating with Apps Script.
-
-The public browser cannot choose arbitrary geography codes successfully because Apps Script validates the LGA/Ward/Polling Unit relationship against the published master.
-
-This V1 intentionally keeps AI out of the critical submission path. AI can be added later for reporting, duplicate review assistance, anomaly summaries, and natural-language admin queries without making it responsible for authoritative geography.
+## Master data
+Do not replace the existing 5,042-row master merely because it has 18 duplicate-name warnings. The Phase 1 validator treats same-name/different-code polling units as warnings, while code conflicts are errors.

@@ -1,55 +1,67 @@
-const ALLOW_PUBLIC = new Set([
-  "getState","getLGAs","getWards","getPollingUnits","getMasterStatus","submitCoordinator"
-]);
-const ALLOW_ADMIN = new Set([
-  "adminLogin","getDashboardStats","getMasterStatus","listRecords","exportRecords",
-  "validateMasterList","buildMasterList","importGeographyCsv"
-]);
+export async function onRequest(context) {
+  const { request, env, params } = context;
+  const url = new URL(request.url);
+  const upstream = env.TK27_APPS_SCRIPT_URL;
+  if (!upstream) return json({success:false,error:{code:"CONFIG_ERROR",message:"Backend URL is not configured."}},500);
 
-async function sign(payload, secret){
-  const data = new TextEncoder().encode(payload);
-  const key = await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
-  const sig = await crypto.subtle.sign("HMAC",key,data);
-  return btoa(String.fromCharCode(...new Uint8Array(sig))).replaceAll("+","-").replaceAll("/","_").replaceAll("=","");
-}
-async function token(secret){
-  const exp=Date.now()+60*60*1000;
-  const body=`${exp}`;
-  return `${body}.${await sign(body,secret)}`;
-}
-async function validToken(t,secret){
-  try{
-    const [exp,sig]=String(t||"").split(".");
-    if(!exp||Number(exp)<Date.now())return false;
-    return sig===await sign(exp,secret);
-  }catch{return false}
-}
-function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json;charset=UTF-8","cache-control":"no-store"}})}
-export async function onRequest(context){
-  const {request,env}=context;
-  const backend=env.TK27_APPS_SCRIPT_URL;
-  const secret=env.TK27_ADMIN_KEY;
-  if(!backend||!secret)return json({success:false,error:{code:"CONFIG","message":"Server is not configured."}},500);
-  const url=new URL(request.url), action=url.searchParams.get("action")||"";
-  if(request.method==="OPTIONS")return new Response("",{status:204});
-  if(action==="adminLogin" && request.method==="POST"){
-    const body=await request.json().catch(()=>({}));
-    if(!body.adminKey || body.adminKey!==secret)return json({success:false,error:{code:"UNAUTHORIZED","message":"Invalid admin key."}},401);
-    return json({success:true,data:{session:await token(secret)}});
+  if (request.method === "OPTIONS") return cors(new Response(null,{status:204}));
+
+  const action = Array.isArray(params.path) ? params.path.join("/") : String(params.path || "");
+  const allowedGet = new Set(["health","state","lgas","wards","polling-units","master-status"]);
+  const allowedPost = new Set(["submit","admin/login","admin/status","admin/records","admin/validate-master","admin/refresh-master","admin/logout"]);
+
+  try {
+    let target = new URL(upstream);
+    if (request.method === "GET") {
+      const map = {health:"health",state:"getState",lgas:"getLGAs","wards":"getWards", "polling-units":"getPollingUnits","master-status":"getMasterStatus"};
+      if (!allowedGet.has(action)) return json({success:false,error:{code:"NOT_FOUND",message:"Unknown endpoint."}},404);
+      target.searchParams.set("action",map[action]);
+      for (const [k,v] of url.searchParams.entries()) {
+        if (k !== "action") target.searchParams.set(k,v);
+      }
+      const r = await fetch(target.toString(), {method:"GET",redirect:"follow"});
+      return cors(await cloneJson(r));
+    }
+
+    if (request.method !== "POST") return json({success:false,error:{code:"METHOD_NOT_ALLOWED",message:"Method not allowed."}},405);
+    if (!allowedPost.has(action)) return json({success:false,error:{code:"NOT_FOUND",message:"Unknown endpoint."}},404);
+
+    const body = await request.json();
+    const actionMap = {
+      "submit":"submitCoordinator",
+      "admin/login":"adminLogin",
+      "admin/status":"adminStatus",
+      "admin/records":"adminRecords",
+      "admin/validate-master":"adminValidateMaster",
+      "admin/refresh-master":"adminRefreshMaster",
+      "admin/logout":"adminLogout"
+    };
+    body.action = actionMap[action];
+
+    const r = await fetch(target.toString(), {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body),
+      redirect:"follow"
+    });
+    return cors(await cloneJson(r));
+  } catch (e) {
+    return json({success:false,error:{code:"UPSTREAM_ERROR",message:"The backend could not be reached."}},502);
   }
-  const isAdmin=ALLOW_ADMIN.has(action)&&action!=="adminLogin";
-  if(!ALLOW_PUBLIC.has(action)&&!isAdmin)return json({success:false,error:{code:"NOT_FOUND","message":"Unknown action."}},404);
-  if(isAdmin && !(await validToken(request.headers.get("X-Admin-Session"),secret)))
-    return json({success:false,error:{code:"UNAUTHORIZED","message":"Admin session expired or invalid."}},401);
+}
 
-  const target=new URL(backend);
-  target.searchParams.set("action",action);
-  if(isAdmin)target.searchParams.set("adminKey",secret);
-  let init={method:request.method,headers:{"content-type":"application/json"}};
-  if(request.method==="POST")init.body=await request.text();
-  try{
-    const r=await fetch(target.toString(),init);
-    const text=await r.text();
-    return new Response(text,{status:r.status,headers:{"content-type":"application/json;charset=UTF-8","cache-control":"no-store"}});
-  }catch(e){return json({success:false,error:{code:"BACKEND_UNAVAILABLE",message:"Backend is temporarily unavailable."}},502)}
+async function cloneJson(response) {
+  const text = await response.text();
+  return new Response(text,{status:response.status,headers:{"Content-Type":"application/json"}});
+}
+function cors(response) {
+  const h = new Headers(response.headers);
+  h.set("Access-Control-Allow-Origin","*");
+  h.set("Access-Control-Allow-Methods","GET,POST,OPTIONS");
+  h.set("Access-Control-Allow-Headers","Content-Type");
+  h.set("Cache-Control","no-store");
+  return new Response(response.body,{status:response.status,headers:h});
+}
+function json(obj,status=200) {
+  return cors(new Response(JSON.stringify(obj),{status,headers:{"Content-Type":"application/json"}}));
 }

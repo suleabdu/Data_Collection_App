@@ -1,52 +1,141 @@
-function json_(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+/**
+ * Utilities.gs — small reusable helpers (text cleaning, ids, sheet helpers).
+ * Pure functions here are unit-tested outside Apps Script.
+ */
+
+function nowIso_() {
+  return new Date().toISOString();
 }
-function ok_(data) { return {success:true, data:data || {}}; }
-function fail_(code, message) { return {success:false, error:{code:code, message:message}}; }
-function now_(){ return new Date(); }
-function iso_(d){ return Utilities.formatDate(d || new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss"); }
-function normalizeText_(v){ return String(v == null ? '' : v).trim().replace(/\s+/g,' '); }
-function normalizeKey_(v){ return normalizeText_(v).toUpperCase(); }
-function csvEscape_(v){
-  const s=String(v == null ? '' : v);
-  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+
+function newId_(prefix) {
+  return prefix + '-' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
 }
-function rowsToCsv_(headers, rows){
-  return [headers, ...rows].map(r=>r.map(csvEscape_).join(',')).join('\r\n');
+
+function zeroPad_(value, width) {
+  let text = String(value);
+  while (text.length < width) text = '0' + text;
+  return text;
 }
-function getSheet_(name){
-  const ss=SpreadsheetApp.getActive();
-  let sh=ss.getSheetByName(name);
-  if(!sh) sh=ss.insertSheet(name);
-  return sh;
+
+// ---------------------------------------------------------------------------
+// Text normalisation
+// ---------------------------------------------------------------------------
+
+const HTML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+function decodeEntities_(text) {
+  return String(text)
+    .replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(Number(n)); })
+    .replace(/&#x([0-9a-f]+);/gi, function (m, h) { return String.fromCharCode(parseInt(h, 16)); })
+    .replace(/&([a-z]+);/gi, function (m, name) {
+      const key = name.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(HTML_ENTITIES, key) ? HTML_ENTITIES[key] : m;
+    });
 }
-function ensureHeaders_(sheetName, headers){
-  const sh=getSheet_(sheetName);
-  if(sh.getLastRow()===0){ sh.getRange(1,1,1,headers.length).setValues([headers]); }
-  return sh;
+
+/** Removes tags (replacing them with a space so adjacent cells do not fuse), decodes entities. */
+function stripTags_(html) {
+  const withoutScripts = String(html).replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ');
+  return cleanText_(decodeEntities_(withoutScripts.replace(/<[^>]*>/g, ' ')));
 }
-function values_(sheetName){
-  const sh=getSheet_(sheetName), last=sh.getLastRow(), cols=sh.getLastColumn();
-  if(last<2 || cols<1) return [];
-  return sh.getRange(2,1,last-1,cols).getValues();
+
+/** Trims and collapses all whitespace (including non-breaking spaces). */
+function cleanText_(value) {
+  return String(value == null ? '' : value).replace(/[   ]/g, ' ').replace(/\s+/g, ' ').trim();
 }
-function headerMap_(headers){
-  const m={}; headers.forEach((h,i)=>m[String(h)]=i); return m;
+
+/**
+ * Title-cases a geographic name and repairs common source quirks:
+ *   "ake ii"            -> "Ake II"
+ *   "Ijade / Imepe Ii"  -> "Ijade/Imepe II"
+ *   "Ode -Lemo"         -> "Ode-Lemo"   (tight hyphen, wards/LGAs only)
+ * options.tightHyphen: remove spaces around hyphens (use for wards and LGAs).
+ */
+function normalizeName_(value, options) {
+  const opts = options || {};
+  let text = cleanText_(value);
+  if (!text) return '';
+  text = text.replace(/\s*\/\s*/g, '/');
+  if (opts.tightHyphen) text = text.replace(/\s*-\s*/g, '-');
+  text = text.toLowerCase().replace(/(^|[\s\/\-\.\(,])([a-z])/g, function (m, sep, ch) {
+    return sep + ch.toUpperCase();
+  });
+  return text.replace(/\b(Ii|Iii|Iv|Vi|Vii|Viii|Ix)\b/g, function (m) { return m.toUpperCase(); });
 }
-function requireAdmin_(e){
-  const key=(e && e.parameter && e.parameter.adminKey) || '';
-  const prop=PropertiesService.getScriptProperties().getProperty(CONFIG.ADMIN_KEY_PROPERTY) || '';
-  return !!prop && key===prop;
+
+/** Upper-case, accent-free, alphanumeric-only key for comparisons. */
+function compareKey_(value) {
+  return cleanText_(value).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
-function makeRecordId_(position){
-  const prefix={STATE_EXCO:'EXCO',LGA_COORDINATOR:'LGA',WARD_COORDINATOR:'WC'}[position] || 'REC';
-  const props=PropertiesService.getScriptProperties();
-  const k='SEQ_'+prefix, n=Number(props.getProperty(k)||0)+1; props.setProperty(k,String(n));
-  return CONFIG.STATE_CODE+'-'+prefix+'-'+String(n).padStart(6,'0');
+
+/**
+ * Normalises an INEC-style code: trims, converts '-' to '/', and zero-pads each
+ * segment when the segment count matches `widths`. Otherwise returns the cleaned
+ * text unchanged so validation can reject it.
+ */
+function normalizeCode_(value, widths) {
+  const text = cleanText_(value).replace(/\s+/g, '').replace(/-/g, '/');
+  if (!text) return '';
+  const parts = text.split('/');
+  if (parts.length !== widths.length) return text;
+  if (!parts.every(function (p) { return /^\d+$/.test(p); })) return text;
+  return parts.map(function (p, i) { return zeroPad_(p, widths[i]); }).join('/');
 }
-function audit_(action, details, actor){
-  const sh=ensureHeaders_(CONFIG.SHEETS.AUDIT,['Timestamp','Action','Actor','Details']);
-  sh.appendRow([now_(),action,actor||'SYSTEM',JSON.stringify(details||{})]);
+
+// ---------------------------------------------------------------------------
+// Sheet helpers
+// ---------------------------------------------------------------------------
+
+function getOrCreateSheet_(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(name) || ss.insertSheet(name);
 }
-function getAdminKey_(){ return PropertiesService.getScriptProperties().getProperty(CONFIG.ADMIN_KEY_PROPERTY)||''; }
+
+/**
+ * Writes the header row if the sheet is empty. If a different header row is
+ * already there it is left untouched (never destroy data) and false is returned.
+ */
+function ensureHeaders_(sheet, headers, forceText) {
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const existing = sheet.getLastRow() > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  const isBlank = existing.every(function (cell) { return cell === ''; });
+  let matches = isBlank;
+  if (!isBlank) {
+    matches = headers.every(function (h, i) { return String(existing[i]) === h; });
+  }
+  if (isBlank) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  }
+  if (isBlank || matches) {
+    const headerRange = sheet.getRange(1, 1, 1, headers.length);
+    headerRange.setFontWeight('bold').setBackground('#F3F4F6');
+    sheet.setFrozenRows(1);
+    if (forceText) {
+      sheet.getRange(1, 1, sheet.getMaxRows(), headers.length).setNumberFormat('@');
+    }
+  }
+  return matches;
+}
+
+/** Appends rows to a sheet in a single call. */
+function appendRows_(sheetName, rows) {
+  if (!rows.length) return;
+  const sheet = getOrCreateSheet_(sheetName);
+  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+/** Clears all data rows below the header row. */
+function clearDataRows_(sheet) {
+  const last = sheet.getLastRow();
+  if (last >= 2) {
+    sheet.getRange(2, 1, last - 1, Math.max(sheet.getLastColumn(), 1)).clearContent();
+  }
+}
+
+/** Returns data rows (below header) as arrays; [] when the sheet has no data. */
+function readDataRows_(sheetName, width) {
+  const sheet = getOrCreateSheet_(sheetName);
+  const last = sheet.getLastRow();
+  if (last < 2) return [];
+  return sheet.getRange(2, 1, last - 1, width).getValues();
+}
