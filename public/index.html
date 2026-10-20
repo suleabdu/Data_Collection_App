@@ -269,19 +269,26 @@
         puSelect.className = puSelect.className.replace('bg-slate-100/70 text-slate-400', 'bg-slate-50/50 text-slate-700');
       }
     }
-
     async function handleFormSubmit(event) {
       event.preventDefault();
       const btn = document.getElementById('submit-btn');
+
+      // Prevent double-clicks / multiple submissions
+      if (btn.disabled) return;
       btn.disabled = true;
-      btn.textContent = 'Submitting...';
+      btn.textContent = 'Submitting record...';
 
       const lgaSelect = document.getElementById('lga-select');
       const wardSelect = document.getElementById('ward-select');
-      const puData = JSON.parse(document.getElementById('pu-select').value);
+      const puSelect = document.getElementById('pu-select');
+
+      let puData = { name: '', code: '', fullCode: '' };
+      try {
+        puData = JSON.parse(puSelect.value);
+      } catch (e) { }
 
       const payload = {
-        submissionKey: 'SUB-' + Math.random().toString(36).substring(2) + Date.now().toString(36),
+        action: 'submitCoordinator',
         state: 'Ogun',
         stateCode: '27',
         name: document.getElementById('name').value,
@@ -296,31 +303,28 @@
         notes: document.getElementById('notes').value,
         submittedAt: new Date().toISOString()
       };
-      // Inside handleFormSubmit(event) in public/index.html
-      const json = await safeApiCall('/api?action=submitCoordinator', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
 
       try {
-        const json = await safeApiCall('/api', {
+        const json = await safeApiCall('/api?action=submitCoordinator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        if (json.status === 'SUCCESS' || json.status === 'DUPLICATE') {
-          document.getElementById('result-record-id').textContent = json.recordId;
+        // Correctly check backend standard response: { success: true, data: { recordId: "..." } }
+        if (json.success && json.data) {
+          document.getElementById('result-record-id').textContent = json.data.recordId || 'REC-SUCCESS';
           document.getElementById('coordinator-form').classList.add('hidden');
           document.getElementById('success-state').classList.remove('hidden');
         } else {
-          alert('Submission error: ' + json.message);
+          // Extract the actual error message sent by the backend
+          const errorMsg = json.error?.message || json.message || 'Unknown server error';
+          alert('Submission error: ' + errorMsg);
           btn.disabled = false;
           btn.textContent = 'Submit Registration';
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        alert('Network or Server Error: ' + err.message);
         btn.disabled = false;
         btn.textContent = 'Submit Registration';
       }
@@ -330,11 +334,12 @@
       document.getElementById('coordinator-form').reset();
       document.getElementById('ward-select').disabled = true;
       document.getElementById('pu-select').disabled = true;
+      document.getElementById('ward-select').className = document.getElementById('ward-select').className.replace('bg-slate-50/50 text-slate-700', 'bg-slate-100/70 text-slate-400');
+      document.getElementById('pu-select').className = document.getElementById('pu-select').className.replace('bg-slate-50/50 text-slate-700', 'bg-slate-100/70 text-slate-400');
       document.getElementById('success-state').classList.add('hidden');
       document.getElementById('coordinator-form').classList.remove('hidden');
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = false;
-      btn.textContent = 'Submit Registration';
+      document.getElementById('submit-btn').disabled = false;
+      document.getElementById('submit-btn').textContent = 'Submit Registration';
     }
   </script>
 </body>
