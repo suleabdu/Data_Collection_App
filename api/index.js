@@ -4,17 +4,18 @@ export default async function handler(req, res) {
 
     const targetUrl = new URL(APPS_SCRIPT_URL);
 
-    // Forward all query parameters (e.g., ?action=getLGAs)
+    // Forward query parameters
     for (const [key, value] of Object.entries(req.query)) {
-        if (key !== 'path') {
-            targetUrl.searchParams.append(key, value);
-        }
+        if (key !== 'path') targetUrl.searchParams.append(key, value);
     }
 
     try {
         const fetchOptions = {
             method: req.method,
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "X-Admin-Session": req.headers["x-admin-session"] || ""
+            },
         };
 
         if (req.method !== 'GET' && req.method !== 'HEAD') {
