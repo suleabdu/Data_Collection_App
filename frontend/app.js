@@ -137,7 +137,6 @@
       if (mine !== token.pu) return;
       if (!res.success) { lockSelect(el.pu, 'Could not load polling units'); showBanner(res.error.message, 'error', onWardChange); return; }
       hideBanner();
-      // Show the unit number: a few wards have two units with the same name.
       fillSelect(el.pu, 'Select polling unit', res.data, function (p) { return p.fullCode; }, function (p) { return p.name + ' (' + p.code + ')'; });
       el.pu.disabled = false;
     });
@@ -181,7 +180,6 @@
     if (Object.keys(errors).length) { showErrors(errors); return; }
     clearErrors();
 
-    // Same details => same key (safe retry). Changed details => new key, so a retry never replays an old save.
     var fingerprint = JSON.stringify(values);
     if (fingerprint !== lastFingerprint) { submissionKey = newKey(); lastFingerprint = fingerprint; }
 
@@ -195,60 +193,75 @@
       refreshSubmit();
 
       if (res.success) { showSuccess(res.data); return; }
-      if (res.error.fields) { showErrors(res.error.fields); }
-      showBanner(res.error.message, res.error.code === 'NETWORK' ? 'error' : 'error');
+      if (res.error && res.error.fields) { showErrors(res.error.fields); }
+      showBanner(res.error ? res.error.message : 'An error occurred.', 'error');
     });
   }
 
   function showSuccess(data) {
-    $('refNumber').textContent = data.recordId;
-    var notice = $('dupNotice');
-    notice.hidden = !data.duplicate;
-    notice.textContent = data.duplicateMessage || '';
+    var refEl = $('refNumber');
+    if (refEl) { refEl.textContent = data.recordId || ''; }
 
-    var rows = [
-      ['Name', data.summary.name], ['Position', data.summary.position], ['Phone', data.summary.phone],
-      ['Local government', data.summary.lga], ['Ward', data.summary.ward], ['Polling unit', data.summary.pollingUnit]
-    ];
+    var notice = $('dupNotice');
+    if (notice) {
+      notice.hidden = !data.duplicate;
+      notice.textContent = data.duplicateMessage || '';
+    }
+
     var list = $('summary');
-    list.innerHTML = '';
-    rows.forEach(function (r) {
-      var dt = document.createElement('dt'); dt.textContent = r[0];
-      var dd = document.createElement('dd'); dd.textContent = r[1];
-      var wrap = document.createElement('div'); wrap.appendChild(dt); wrap.appendChild(dd);
-      list.appendChild(wrap);
-    });
+    if (list) {
+      var rows = [
+        ['Name', data.summary ? data.summary.name : ''],
+        ['Position', data.summary ? data.summary.position : ''],
+        ['Phone', data.summary ? data.summary.phone : ''],
+        ['Local government', data.summary ? data.summary.lga : ''],
+        ['Ward', data.summary ? data.summary.ward : ''],
+        ['Polling unit', data.summary ? data.summary.pollingUnit : '']
+      ];
+      list.innerHTML = '';
+      rows.forEach(function (r) {
+        var dt = document.createElement('dt'); dt.textContent = r[0];
+        var dd = document.createElement('dd'); dd.textContent = r[1];
+        var wrap = document.createElement('div'); wrap.appendChild(dt); wrap.appendChild(dd);
+        list.appendChild(wrap);
+      });
+    }
 
     try { localStorage.setItem('tk27_position', el.position.value); } catch (e) { /* ignore */ }
-    el.formCard.hidden = true;
-    el.successCard.hidden = false;
+    if (el.formCard) el.formCard.hidden = true;
+    if (el.successCard) el.successCard.hidden = false;
     window.scrollTo(0, 0);
-  }
-
-  function addAnother() {
-    var keepPosition = el.position.value;
-    el.form.reset();
-    el.position.value = keepPosition;
-    lockSelect(el.ward, 'Select a local government first');
-    lockSelect(el.pu, 'Select a ward first');
-    clearErrors();
-    hideBanner();
-    submissionKey = newKey();
-    lastFingerprint = '';
-    el.successCard.hidden = true;
-    el.formCard.hidden = false;
-    window.scrollTo(0, 0);
-    el.name.focus();
   }
 
   // ---------- wire up ----------
   el.lga.addEventListener('change', onLgaChange);
   el.ward.addEventListener('change', onWardChange);
   el.form.addEventListener('submit', onSubmit);
-  $('addAnother').addEventListener('click', addAnother);
+
+  var addAnotherBtn = $('addAnother');
+  if (addAnotherBtn) {
+    addAnotherBtn.addEventListener('click', function () {
+      var keepPosition = el.position.value;
+      el.form.reset();
+      el.position.value = keepPosition;
+      lockSelect(el.ward, 'Select a local government first');
+      lockSelect(el.pu, 'Select a ward first');
+      clearErrors();
+      hideBanner();
+      submissionKey = newKey();
+      lastFingerprint = '';
+      if (el.successCard) el.successCard.hidden = true;
+      if (el.formCard) el.formCard.hidden = false;
+      window.scrollTo(0, 0);
+      el.name.focus();
+    });
+  }
+
   fields.forEach(function (f) {
     var input = el[f];
-    input.addEventListener('input', function () { setError(f, ''); });
+    if (input) {
+      input.addEventListener('input', function () { setError(f, ''); });
+    }
   });
 
   refreshSubmit();

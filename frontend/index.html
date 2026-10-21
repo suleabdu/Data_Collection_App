@@ -68,19 +68,18 @@
         </div>
 
         <!-- Honeypot: people never see or fill this; simple bots do. -->
-        <div class="hp" aria-hidden="true"><label>Website<input type="text" id="website" tabindex="-1"
-              autocomplete="off"></label></div>
+        <div class="hp" aria-hidden="true">
+          <label>Website<input type="text" id="website" tabindex="-1" autocomplete="off"></label>
+        </div>
 
         <button type="submit" class="btn primary" id="submitBtn" disabled>Submit record</button>
       </form>
     </section>
 
+    <!-- Clean Success Section -->
     <section class="card success" id="successCard" hidden>
       <h2>Record submitted successfully.</h2>
-      <div class="reference"><small>Reference number</small><strong id="refNumber"></strong></div>
       <div id="dupNotice" class="banner warn" hidden></div>
-      <dl class="summary" id="summary"></dl>
-      <button type="button" class="btn primary" id="addAnother">Add another record</button>
     </section>
   </main>
 
