@@ -1,20 +1,45 @@
 {
-    "rewrites": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": null,
+  "outputDirectory": "frontend",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
         {
-            "source": "/api",
-            "destination": "https://script.google.com/macros/s/AKfycbwygXAWi9n5HF7PF5bf3QrA5bUD0lZJlhLLeruCsVQn3GngJ2x4dK__penZonXuK4dwAQ/exec"
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         },
         {
-            "source": "/admin",
-            "destination": "/admin/index.html"
+          "key": "X-Frame-Options",
+          "value": "DENY"
         },
         {
-            "source": "/admin.html",
-            "destination": "/admin/index.html"
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
         },
         {
-            "source": "/",
-            "destination": "/frontend/index.html"
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
         }
-    ]
+      ]
+    },
+    {
+      "source": "/(.*)\\.(js|css)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ]
 }

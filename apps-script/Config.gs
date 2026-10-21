@@ -69,7 +69,16 @@ const TK27 = {
     PU: /^\d{2}\/\d{2}\/\d{2}\/\d{3}$/
   },
 
-  MAX_VALIDATION_LOG_ROWS: 500
+  MAX_VALIDATION_LOG_ROWS: 500,
+
+  // Allowed positions. `idCode` is the segment used in record ids (OG-WC-000184).
+  POSITIONS: {
+    STATE_EXCO: { label: 'State Exco', idCode: 'EXCO' },
+    LGA_COORDINATOR: { label: 'LGA Coordinator', idCode: 'LGA' },
+    WARD_COORDINATOR: { label: 'Ward Coordinator', idCode: 'WC' }
+  },
+
+  VERIFICATION_STATUSES: ['PENDING', 'VERIFIED', 'REJECTED']
 };
 
 /** [key, default value, description]. Seeded once; existing values are never overwritten. */

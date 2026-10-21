@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TK27 Coordinator Data Collection</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F59E0B">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="brand">TK<span>27</span></div>
+      <div class="state" id="stateName">&nbsp;</div>
+      <p class="title">Coordinator Data Collection</p>
+    </header>
+
+    <section class="card" id="formCard">
+      <p class="intro">Please enter accurate information for each coordinator.</p>
+      <div id="banner" class="banner" role="alert" hidden></div>
+
+      <form id="form" novalidate autocomplete="off">
+        <div class="field" id="f-position">
+          <label for="position">Position</label>
+          <select id="position" disabled>
+            <option value="">Loading...</option>
+          </select>
+          <p class="error" id="e-position" hidden></p>
+        </div>
+
+        <div class="field" id="f-name">
+          <label for="name">Full name</label>
+          <input type="text" id="name" autocomplete="name" maxlength="100" placeholder="First name and last name">
+          <p class="error" id="e-name" hidden></p>
+        </div>
+
+        <div class="field" id="f-phone">
+          <label for="phone">Phone number</label>
+          <input type="tel" id="phone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="08012345678">
+          <p class="error" id="e-phone" hidden></p>
+        </div>
+
+        <div class="field" id="f-lga">
+          <label for="lga">Local government</label>
+          <select id="lga" disabled>
+            <option value="">Loading LGAs...</option>
+          </select>
+          <p class="error" id="e-lga" hidden></p>
+        </div>
+
+        <div class="field" id="f-ward">
+          <label for="ward">Ward</label>
+          <select id="ward" disabled>
+            <option value="">Select a local government first</option>
+          </select>
+          <p class="error" id="e-ward" hidden></p>
+        </div>
+
+        <div class="field" id="f-pu">
+          <label for="pu">Polling unit</label>
+          <select id="pu" disabled>
+            <option value="">Select a ward first</option>
+          </select>
+          <p class="error" id="e-pu" hidden></p>
+        </div>
+
+        <!-- Honeypot: people never see or fill this; simple bots do. -->
+        <div class="hp" aria-hidden="true"><label>Website<input type="text" id="website" tabindex="-1"
+              autocomplete="off"></label></div>
+
+        <button type="submit" class="btn primary" id="submitBtn" disabled>Submit record</button>
+      </form>
+    </section>
+
+    <section class="card success" id="successCard" hidden>
+      <h2>Record submitted successfully.</h2>
+      <div class="reference"><small>Reference number</small><strong id="refNumber"></strong></div>
+      <div id="dupNotice" class="banner warn" hidden></div>
+      <dl class="summary" id="summary"></dl>
+      <button type="button" class="btn primary" id="addAnother">Add another record</button>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="validate.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -3,6 +3,16 @@
  * Pure functions here are unit-tested outside Apps Script.
  */
 
+/** An error whose message is safe to show to the user. Anything else becomes a generic message. */
+class AppError extends Error {
+  constructor(code, message, fields) {
+    super(message);
+    this.code = code;
+    this.fields = fields || null;
+    this.isAppError = true;
+  }
+}
+
 function nowIso_() {
   return new Date().toISOString();
 }

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TK27 Data Administration</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell wide">
+    <header class="top">
+      <div class="brand">TK<span>27</span> / ADMIN</div>
+      <p class="title">Data Administration</p>
+    </header>
+
+    <!-- sign in -->
+    <section class="card narrow" id="loginCard">
+      <div id="loginBanner" class="banner error" role="alert" hidden></div>
+      <form id="loginForm" autocomplete="off">
+        <div class="field">
+          <label for="passcode">Admin passcode</label>
+          <input type="password" id="passcode" autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn primary" id="loginBtn">Sign in</button>
+      </form>
+    </section>
+
+    <!-- dashboard -->
+    <div id="dash" hidden>
+      <div class="row spaced">
+        <span class="meta" id="appStatus"></span>
+        <button class="btn small" id="refreshBtn" type="button">Refresh</button>
+        <button class="btn small" id="pauseBtn" type="button">Pause collection</button>
+        <button class="btn small" id="signOut" type="button">Sign out</button>
+      </div>
+      <div id="dashBanner" class="banner" hidden></div>
+
+      <div class="grid six" id="cards"></div>
+
+      <h2 class="section">Collection progress</h2>
+      <div class="card">
+        <div class="grid" id="progress"></div>
+        <p class="label spaced-top">Submissions, last 14 days</p>
+        <div id="daily" aria-label="Submissions per day"></div>
+      </div>
+
+      <h2 class="section">Coverage by local government</h2>
+      <div class="table-wrap"><table id="lgaTable"></table></div>
+
+      <h2 class="section">Master data</h2>
+      <div class="card" id="master"></div>
+
+      <h2 class="section">Actions</h2>
+      <div class="actions">
+        <button class="btn" id="buildBtn" type="button">Build / refresh master list</button>
+        <button class="btn" id="validateBtn" type="button">Validate master list</button>
+        <button class="btn" id="auditBtn" type="button">View audit log</button>
+      </div>
+      <pre class="result" id="result" hidden></pre>
+
+      <h2 class="section">Export (CSV, opens in Excel)</h2>
+      <div class="actions" id="exports"></div>
+
+      <h2 class="section">Records</h2>
+      <div class="card">
+        <div class="row">
+          <input type="search" id="q" placeholder="Search name, phone, LGA, ward, ID">
+          <select id="fPosition"><option value="">All positions</option></select>
+          <select id="fStatus">
+            <option value="">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+          <label class="check"><input type="checkbox" id="fDup"> Possible duplicates only</label>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="records"></table></div>
+      <div class="pager">
+        <button class="btn small" id="prev" type="button">Previous</button>
+        <span class="meta" id="pageInfo"></span>
+        <button class="btn small" id="next" type="button">Next</button>
+      </div>
+
+      <div id="auditWrap" hidden>
+        <h2 class="section">Audit log (latest 100)</h2>
+        <div class="table-wrap"><table id="audit"></table></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
