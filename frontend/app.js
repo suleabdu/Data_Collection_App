@@ -130,13 +130,62 @@
     if (!validateStep(2)) { moveTo(2); return; }
     state.busy = true; hideBanner(); $('submitBtn').textContent = 'Submitting securely…'; renderStep();
     try {
-      var result = await db.rpc('submit_coordinator', {
-        p_position: el.position.value, p_name: el.name.value.trim(), p_phone: el.phone.value.trim(),
-        p_lga_code: el.lga.value, p_ward_code: el.ward.value, p_pu_code: el.pu.value,
-        p_submission_key: state.submissionKey, p_website: el.website.value
+      // Public submission is routed through the server-side Edge Function so direct
+      // anonymous RPC execution can be revoked and attempts can be rate-limited.
+      var result = await db.functions.invoke('submit-coordinator', {
+        body: {
+          p_position: el.position.value, p_name: el.name.value.trim(), p_phone: el.phone.value.trim(),
+          p_lga_code: el.lga.value, p_ward_code: el.ward.value, p_pu_code: el.pu.value,
+          p_submission_key: state.submissionKey, p_website: el.website.value
+        }
       });
-      if (result.error) throw result.error;
+      if (result.error) {
+        var invokeError = result.error;
+        var response = invokeError && invokeError.context;
+        // Supabase FunctionsHttpError exposes the Response as context. Read a clone so
+        // the body remains available to the SDK and map known deployment failures.
+        if (response && typeof response.clone === 'function') {
+          var responseBody = null;
+          try { responseBody = await response.clone().json(); } catch (_) {}
+          if (responseBody && typeof responseBody === 'object' && responseBody.code) {
+            var responseError = new Error(responseBody.message || invokeError.message || 'The submission service could not complete this request.');
+            responseError.code = String(responseBody.code);
+            responseError.status = Number(responseBody.status || response.status || 0);
+            responseError.details = responseBody.details || null;
+            responseError.hint = responseBody.hint || null;
+            throw responseError;
+          }
+          if (response.status === 404) {
+            var missingGateway = new Error('The submit-coordinator Edge Function was not found.');
+            missingGateway.code = 'SUBMISSION_GATEWAY_NOT_FOUND';
+            missingGateway.status = 404;
+            throw missingGateway;
+          }
+          if (response.status === 429) {
+            var limitedGateway = new Error('Too many submission attempts came from this network.');
+            limitedGateway.code = 'RATE_LIMITED';
+            limitedGateway.status = 429;
+            throw limitedGateway;
+          }
+        }
+        throw invokeError;
+      }
       var data = result.data || {};
+      if (data.code === 'RATE_LIMITED') {
+        showBanner(data.message || 'There have been too many attempts from this network. Please wait a few minutes before trying again.', 'warn');
+        el.banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      // Edge Function envelopes retain the database diagnostic code, but keep raw
+      // PostgreSQL errors and record details out of the public response.
+      if (data.success === false && data.code && data.code !== 'DUPLICATE_RECORD') {
+        var serviceError = new Error(data.message || 'The submission service could not complete this request.');
+        serviceError.code = data.code;
+        serviceError.status = data.status || 0;
+        serviceError.details = data.details || null;
+        serviceError.hint = data.hint || null;
+        throw serviceError;
+      }
       // The database RPC blocks matching records and returns a structured result.
       // A duplicate rejection must never transition the page to the success state.
       if (data.duplicate === true && data.success === false) {
@@ -182,8 +231,12 @@
         showBanner('This form session could not be validated. Refresh the page, re-enter the details and submit again. If a previous attempt may have completed, ask the administrator to check before resubmitting.', 'error');
       } else if (/location|polling unit|ward|local government/i.test(msg)) {
         moveTo(2); showBanner('The selected location could not be validated. Please reselect the LGA, ward and polling unit, then try again.', 'error');
+      } else if (code === 'RATE_LIMITED' || status === 429) {
+        showBanner('Too many submission attempts have come from this network in a short period. Please wait a few minutes and try again.', 'warn');
+      } else if (code === 'SUBMISSION_GATEWAY_NOT_FOUND' || status === 404) {
+        showBanner('The public submission service is not deployed or could not be found. The administrator should deploy the submit-coordinator Edge Function, then try again.', 'error');
       } else if (code === 'PGRST202' || /could not find the function|schema cache/i.test(msg)) {
-        showBanner('The submission service is not fully installed in Supabase. Please ask the administrator to apply the latest database migrations, including the duplicate-prevention update, then try again.' + (code ? ' Diagnostic: ' + code + '.' : ''), 'error');
+        showBanner('The submission service is not fully installed in Supabase. The administrator should apply migrations 001–006 and deploy the submit-coordinator Edge Function, then try again.' + (code ? ' Diagnostic: ' + code + '.' : ''), 'error');
       } else if (code === '42501' || status === 401 || status === 403 || /permission denied|not authorized|invalid api key|jwt/i.test(msg)) {
         showBanner('Supabase rejected the submission request. The administrator should check the project URL, public key and execute permissions for the submit_coordinator database function.' + (code ? ' Diagnostic: ' + code + '.' : ''), 'error');
       } else if (/failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(msg) || error instanceof TypeError) {

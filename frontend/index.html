@@ -1,143 +1,204 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#1E1B4B">
-  <title>TK27 Ogun Coordinator Directory</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="description"
+    content="TK27 Ogun State Coordinator Directory — register and maintain coordinator records by Local Government Area, ward and polling unit.">
+  <title>TK27 | Ogun State Coordinator Directory</title>
+  <link rel="stylesheet" href="/home.css">
 </head>
-<body class="public-page">
-  <main class="shell public-shell">
-    <header class="top public-top">
-      <div class="brand" aria-label="TK27">TK<span>27</span></div>
-      <div class="brand-copy">
-        <p class="title">Coordinator directory</p>
-        <div class="state" id="stateName">OGUN STATE</div>
-      </div>
-      <div class="header-assurance"><span class="assurance-dot" aria-hidden="true"></span> Secure registration</div>
-    </header>
 
-    <div class="registration-layout" id="formCard">
-      <aside class="registration-aside" aria-label="Registration overview">
-        <span class="aside-eyebrow">WELCOME TO TK27</span>
-        <h2>A clear record begins with the right details.</h2>
-        <p class="aside-intro">Register a coordinator in three simple steps. Your details help keep the Ogun State coordinator directory accurate and organised.</p>
-        <div class="aside-steps" aria-label="Three registration steps">
-          <div class="aside-step"><span>01</span><div><strong>Coordinator details</strong><small>Role and contact information</small></div></div>
-          <div class="aside-step"><span>02</span><div><strong>Location</strong><small>LGA, ward and polling unit</small></div></div>
-          <div class="aside-step"><span>03</span><div><strong>Review and submit</strong><small>Confirm that everything is correct</small></div></div>
-        </div>
-        <div class="aside-assurance"><span class="assurance-check" aria-hidden="true">✓</span><p><strong>Your information matters.</strong><br>Records are available to authorised administrators for directory management.</p></div>
-      </aside>
-
-      <section class="card form-card">
-      <div class="form-intro">
-        <span class="eyebrow" id="formEyebrow">STEP 1 OF 3 · COORDINATOR</span>
-        <h1 id="stepTitle" tabindex="-1">Let’s create your coordinator profile.</h1>
-        <p id="stepSubtitle" class="intro">Start with the coordinator’s role and contact details. You’ll confirm the location and review everything before submitting.</p>
-      </div>
-
-      <div class="stepper" aria-label="Registration progress">
-        <button class="stepper-step active" data-step="1" type="button" aria-current="step"><span>1</span><b>Coordinator</b></button>
-        <span class="stepper-line" aria-hidden="true"></span>
-        <button class="stepper-step" data-step="2" type="button" disabled><span>2</span><b>Location</b></button>
-        <span class="stepper-line" aria-hidden="true"></span>
-        <button class="stepper-step" data-step="3" type="button" disabled><span>3</span><b>Review</b></button>
-      </div>
-
-      <div id="banner" class="banner" role="alert" hidden></div>
-      <form id="form" novalidate autocomplete="off">
-        <section class="wizard-panel" data-panel="1">
-          <div class="panel-heading">
-            <span class="step-count">STEP 01 / 03</span>
-            <h2>Coordinator details</h2>
-            <p>Start with the role and the best contact details.</p>
-          </div>
-          <div class="field" id="f-position">
-            <label for="position">Position</label>
-            <select id="position" required disabled><option value="">Loading positions…</option></select>
-            <p class="error" id="e-position" hidden></p>
-          </div>
-          <div class="field" id="f-name">
-            <label for="name">Full name</label>
-            <input type="text" id="name" autocomplete="name" maxlength="100" placeholder="Enter first and last name" required>
-            <p class="field-hint">Use the name the coordinator is commonly known by.</p>
-            <p class="error" id="e-name" hidden></p>
-          </div>
-          <div class="field" id="f-phone">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" inputmode="tel" autocomplete="tel" maxlength="22" placeholder="08012345678" required>
-            <p class="field-hint">Nigerian mobile numbers are accepted in local or +234 format.</p>
-            <p class="error" id="e-phone" hidden></p>
-          </div>
-          <div class="wizard-actions wizard-actions-end">
-            <button type="button" class="btn primary" id="next1" disabled>Continue to location <span aria-hidden="true">→</span></button>
-          </div>
-        </section>
-
-        <section class="wizard-panel" data-panel="2" hidden>
-          <div class="panel-heading">
-            <span class="step-count">STEP 02 / 03</span>
-            <h2>Where is the coordinator based?</h2>
-            <p>Choose the local government, ward and polling unit in order.</p>
-          </div>
-          <div class="field" id="f-lga">
-            <label for="lga">Local government area</label>
-            <select id="lga" required disabled><option value="">Loading local governments…</option></select>
-            <p class="error" id="e-lga" hidden></p>
-          </div>
-          <div class="field" id="f-ward">
-            <label for="ward">Ward</label>
-            <select id="ward" required disabled><option value="">Select a local government first</option></select>
-            <p class="error" id="e-ward" hidden></p>
-          </div>
-          <div class="field" id="f-pu">
-            <label for="pu">Polling unit</label>
-            <select id="pu" required disabled><option value="">Select a ward first</option></select>
-            <p class="error" id="e-pu" hidden></p>
-          </div>
-          <div class="wizard-actions">
-            <button type="button" class="btn" id="back2">← Back</button>
-            <button type="button" class="btn primary" id="next2">Review details <span aria-hidden="true">→</span></button>
-          </div>
-        </section>
-
-        <section class="wizard-panel" data-panel="3" hidden>
-          <div class="panel-heading">
-            <span class="step-count">STEP 03 / 03</span>
-            <h2>Check before submitting</h2>
-            <p>Please take a moment to confirm the information is correct.</p>
-          </div>
-          <dl class="review-list">
-            <div><dt>Position</dt><dd id="reviewPosition">—</dd></div>
-            <div><dt>Full name</dt><dd id="reviewName">—</dd></div>
-            <div><dt>Phone number</dt><dd id="reviewPhone">—</dd></div>
-            <div><dt>Local government</dt><dd id="reviewLga">—</dd></div>
-            <div><dt>Ward</dt><dd id="reviewWard">—</dd></div>
-            <div><dt>Polling unit</dt><dd id="reviewPu">—</dd></div>
-          </dl>
-          <p class="privacy-note"><span aria-hidden="true">▣</span> These details are used to maintain the coordinator directory and are available to authorised administrators.</p>
-          <div class="hp" aria-hidden="true"><label>Website<input type="text" id="website" tabindex="-1" autocomplete="off"></label></div>
-          <div class="wizard-actions">
-            <button type="button" class="btn" id="back3">← Edit details</button>
-            <button type="submit" class="btn primary" id="submitBtn" disabled>Submit registration</button>
-          </div>
-        </section>
-      </form>
-      <p class="form-footnote">Please submit one accurate record per coordinator. Fields marked as required must be completed.</p>
-      </section>
+<body class="home-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="home-header" id="siteHeader">
+    <div class="header-inner">
+      <a class="brand-lockup" href="/" aria-label="TK27 Coordinator Directory home">
+        <span class="brand-mark">TK27</span>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-text"><strong>Coordinator Directory</strong><small>OGUN STATE</small></span>
+      </a>
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-controls="primaryNav"
+        aria-expanded="false" aria-label="Open navigation">
+        <span></span><span></span>
+      </button>
+      <nav class="primary-nav" id="primaryNav" aria-label="Main navigation">
+        <a class="nav-link active" href="/" aria-current="page">Home</a>
+        <a class="nav-link" href="#how-it-works">How it works</a>
+        <a class="nav-link" href="#about">About</a>
+        <a class="nav-register" href="/register">Register Coordinators</a>
+        <a class="admin-link" href="/admin">Admin sign in</a>
+      </nav>
     </div>
+  </header>
 
-    <section class="card success-card" id="successCard" hidden aria-live="polite" aria-atomic="true">
-      <h1>Thank you, your record has been submitted.</h1>
+  <main id="main">
+    <section class="hero-section" aria-labelledby="heroTitle">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-line" aria-hidden="true"></span> TK27 · OGUN STATE</p>
+          <h1 id="heroTitle">Ogun State.<br><span>TK 2027.</span></h1>
+          <p class="hero-description">A shared place to register and maintain coordinator records across Local
+            Government Areas, wards and polling units in Ogun State.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="/register">Register Coordinators <span
+                aria-hidden="true">→</span></a>
+            <a class="text-action" href="#how-it-works">How it works <span aria-hidden="true">↘</span></a>
+          </div>
+          <p class="hero-note">Three short steps. Designed for phone and desktop.</p>
+        </div>
+
+        <div class="hero-visual" aria-label="Ogun State map and Nigerian national leadership portraits">
+          <div class="visual-topline">
+            <span>OGUN STATE</span>
+            <span class="visual-rule" aria-hidden="true"></span>
+            <span>ADMINISTRATIVE MAP</span>
+          </div>
+          <div class="map-stage" id="mapStage">
+            <div class="map-glow" aria-hidden="true"></div>
+            <img class="ogun-map-image" src="https://lgaeconomicforum.org/wp-content/uploads/2019/08/Ogun-State-1.png"
+              alt="Map reference showing the Local Government Areas of Ogun State" loading="eager" decoding="async"
+              data-map-image>
+            <svg class="map-fallback" data-map-fallback hidden viewBox="0 0 420 300" role="img"
+              aria-label="Stylised Ogun State map placeholder">
+              <path
+                d="M63 49 L108 37 L139 54 L170 42 L198 62 L225 54 L247 74 L274 71 L298 93 L323 92 L345 119 L333 146 L352 174 L330 203 L301 208 L278 231 L250 226 L226 249 L197 236 L173 246 L145 226 L116 232 L104 209 L79 197 L71 170 L49 158 L55 126 L43 106 L58 79 Z"
+                fill="#EAF1FE" stroke="#2563EB" stroke-width="2.2" stroke-linejoin="round" />
+              <path
+                d="M103 54 L112 100 L89 135 L108 177 L104 209 M139 54 L153 96 L137 133 L155 170 L145 226 M170 42 L181 81 L169 119 L192 156 L173 194 L197 236 M225 54 L216 93 L244 123 L226 161 L250 195 L250 226 M274 71 L266 111 L292 142 L278 181 L301 208 M79 197 L137 184 L173 194 L226 161 L292 142 L333 146 M55 126 L110 124 L169 119 L216 93 L266 111 L323 92"
+                fill="none" stroke="#C3D6FA" stroke-width="1.6" stroke-linecap="round" />
+              <text x="205" y="284" text-anchor="middle" font-size="12" fill="#315A9B">Ogun State · schematic
+                fallback</text>
+            </svg>
+            <div class="map-caption"><span class="map-dot" aria-hidden="true"></span><span>Twenty local government
+                areas</span></div>
+          </div>
+          <div class="leadership-label"><span>LEADERSHIP</span><span class="leadership-label-line"
+              aria-hidden="true"></span><span>FEDERAL REPUBLIC OF NIGERIA</span></div>
+          <div class="leader-row">
+            <figure class="leader-card" data-person-card>
+              <div class="leader-photo leader-photo-tinubu">
+                <img
+                  src="https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Bola_Tinubu_portrait.jpg/500px-Bola_Tinubu_portrait.jpg"
+                  alt="Bola Ahmed Tinubu" loading="eager" decoding="async" data-person-image>
+                <div class="portrait-fallback" hidden aria-hidden="true">BAT</div>
+              </div>
+              <figcaption><strong>Bola Ahmed Tinubu</strong><span>President of Nigeria</span></figcaption>
+            </figure>
+            <figure class="leader-card" data-person-card>
+              <div class="leader-photo leader-photo-shettima">
+                <img
+                  src="https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Kashim_Shettima_office_portrait.jpg/500px-Kashim_Shettima_office_portrait.jpg"
+                  alt="Kashim Shettima" loading="eager" decoding="async" data-person-image>
+                <div class="portrait-fallback" hidden aria-hidden="true">KS</div>
+              </div>
+              <figcaption><strong>Kashim Shettima</strong><span>Vice President of Nigeria</span></figcaption>
+            </figure>
+          </div>
+          <p class="visual-disclaimer">Portraits are for factual identification. TK27 is an independent directory, not a
+            government website.</p>
+        </div>
+      </div>
     </section>
-    <footer class="site-foot">TK27 · Ogun State <span>Secure coordinator record collection</span></footer>
+
+    <section class="principles-section" id="about" aria-labelledby="principlesTitle">
+      <div class="section-inner">
+        <div class="section-intro">
+          <p class="eyebrow">BUILT FOR CLARITY</p>
+          <h2 id="principlesTitle">The information you need.<br><span>Without the clutter.</span></h2>
+          <p>One consistent process keeps coordinator information structured, searchable and easier for authorised
+            administrators to review.</p>
+        </div>
+        <div class="principle-list">
+          <article class="principle-row">
+            <span class="principle-index">01</span>
+            <div>
+              <h3>Accurate records</h3>
+              <p>Standardised details and server-side checks help keep the directory clean.</p>
+            </div>
+          </article>
+          <article class="principle-row">
+            <span class="principle-index">02</span>
+            <div>
+              <h3>Clear locations</h3>
+              <p>Choose an LGA, then a ward and polling unit from the geography master.</p>
+            </div>
+          </article>
+          <article class="principle-row">
+            <span class="principle-index">03</span>
+            <div>
+              <h3>Responsible oversight</h3>
+              <p>Authorised administrators can review submissions and maintain records.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-section" id="how-it-works" aria-labelledby="howTitle">
+      <div class="section-inner how-inner">
+        <div class="how-heading">
+          <p class="eyebrow">STRAIGHTFORWARD BY DESIGN</p>
+          <h2 id="howTitle">Register in three simple steps.</h2>
+          <p>Take a moment to provide accurate details, select the correct location and review before submitting.</p>
+        </div>
+        <div class="steps-list">
+          <div class="how-step"><span class="step-index">Step 01</span>
+            <div>
+              <h3>Coordinator details</h3>
+              <p>Position, full name and contact number.</p>
+            </div>
+          </div>
+          <div class="how-step"><span class="step-index">Step 02</span>
+            <div>
+              <h3>Location</h3>
+              <p>Local Government Area, ward and polling unit.</p>
+            </div>
+          </div>
+          <div class="how-step"><span class="step-index">Step 03</span>
+            <div>
+              <h3>Review and submit</h3>
+              <p>Confirm the details before sending the record.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="register-cta-section" aria-labelledby="ctaTitle">
+      <div class="register-cta">
+        <div>
+          <p class="eyebrow">TK27 · OGUN STATE</p>
+          <h2 id="ctaTitle">Ready to register a coordinator?</h2>
+          <p>Continue to the secure three-step registration form.</p>
+        </div>
+        <a class="button button-primary" href="/register">Register Coordinators <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="supabase-client.js"></script>
-  <script src="app.js"></script>
+
+  <footer class="home-footer">
+    <div class="footer-inner">
+      <a class="footer-brand" href="/" aria-label="TK27 home"><span>TK27</span><span>Coordinator
+          Directory<br><small>OGUN STATE</small></span></a>
+      <p>Accurate records. Clear locations. Responsible administration.</p>
+      <div class="footer-links"><a href="/register">Register</a><a href="/admin">Admin sign in</a></div>
+    </div>
+    <div class="source-note">Portraits: <a href="https://commons.wikimedia.org/wiki/File:Bola_Tinubu_portrait.jpg"
+        target="_blank" rel="noopener noreferrer">Bola Tinubu portrait by Nosa Asemota</a> and <a
+        href="https://commons.wikimedia.org/wiki/File:Kashim_Shettima_office_portrait.jpg" target="_blank"
+        rel="noopener noreferrer">Kashim Shettima portrait by Opeyemi Adelani</a>, via Wikimedia Commons under <a
+        href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA
+        4.0</a>; cropped for layout. Offices: <a href="https://statehouse.gov.ng/team/bola-ahmed-tinubu/"
+        target="_blank" rel="noopener noreferrer">State House — President</a> and <a
+        href="https://statehouse.gov.ng/team/kashim-shettima/" target="_blank" rel="noopener noreferrer">Vice
+        President</a>. Map reference: <a href="https://lgaeconomicforum.org/states/" target="_blank"
+        rel="noopener noreferrer">LGA Economic Forum</a>; confirm map-image reuse rights before production.</div>
+  </footer>
+  <script src="/home.js" defer></script>
 </body>
+
 </html>
