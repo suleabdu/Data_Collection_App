@@ -122,7 +122,11 @@
       <section class="ops-summary" aria-label="System operations">
         <div><span class="summary-label">POLLING UNIT MASTER</span><strong id="masterCount">—</strong><span class="summary-help">valid geography rows</span></div>
         <div><span class="summary-label">SHEET SYNC QUEUE</span><strong id="syncCount">—</strong><span class="summary-help">pending, processing or failed events</span></div>
-        <div class="summary-actions"><button class="btn small" id="retrySyncBtn" type="button">Retry Sheet sync</button></div>
+        <div class="summary-actions">
+          <button class="btn small" id="retrySyncBtn" type="button">Retry pending sync</button>
+          <button class="btn small primary" id="reconcileSheetBtn" type="button">Rebuild Sheet mirror</button>
+        </div>
+        <p class="sheet-mirror-note" id="sheetMirrorNote" role="status">Supabase is the source of truth. The mirror rebuild verifies the full coordinator dataset before replacing the Sheet records.</p>
       </section>
 
       <section class="records-section" id="recordsSection">

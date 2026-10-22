@@ -2,17 +2,11 @@
   'use strict';
   var db = window.TK27_DB;
   var $ = function (id) { return document.getElementById(id); };
-  var fieldsByStep = { 1: ['position', 'name', 'phone'], 2: ['lga', 'ward', 'pu'] };
-  var state = { step: 1, busy: false, ready: false, paused: false, positionOptions: [], submissionKey: newKey(), requestId: 0 };
+  var state = { busy: false, ready: false, paused: false, positionOptions: [], submissionKey: newKey(), requestId: 0 };
   var el = {
     form: $('form'), banner: $('banner'), formCard: $('formCard'), successCard: $('successCard'),
     stateName: $('stateName'), position: $('position'), name: $('name'), phone: $('phone'),
     lga: $('lga'), ward: $('ward'), pu: $('pu'), submit: $('submitBtn'), website: $('website')
-  };
-  var titles = {
-    1: ['Let’s create your coordinator profile.', 'Start with the coordinator’s role and contact details. You’ll confirm the location and review everything before submitting.'],
-    2: ['Where is the coordinator based?', 'Choose the local government, ward and polling unit so the record is linked to the correct location.'],
-    3: ['Review your details before submitting.', 'Please check each item carefully. Once confirmed, your record will be securely submitted to the directory.']
   };
   function newKey() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -21,51 +15,61 @@
     });
   }
   function showBanner(message, kind, retry) {
-    el.banner.className = 'banner ' + (kind || 'error'); el.banner.textContent = message || '';
-    if (retry) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'Try again'; b.addEventListener('click', retry); el.banner.appendChild(b); }
+    el.banner.className = 'banner ' + (kind || 'error');
+    el.banner.textContent = message || '';
+    if (retry) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'Try again';
+      b.addEventListener('click', retry); el.banner.appendChild(b);
+    }
     el.banner.hidden = !message;
   }
   function hideBanner() { el.banner.hidden = true; }
   function setError(id, message) {
     var box = $('f-' + id), text = $('e-' + id); if (!box || !text) return;
-    box.classList.toggle('invalid', !!message); text.textContent = message || ''; text.hidden = !message;
+    box.classList.toggle('invalid', !!message);
+    text.textContent = message || '';
+    text.hidden = !message;
+    var field = $(id);
+    if (field) {
+      if (message) field.setAttribute('aria-invalid', 'true');
+      else field.removeAttribute('aria-invalid');
+    }
   }
   function clearErrors(ids) { (ids || ['position','name','phone','lga','ward','pu']).forEach(function (id) { setError(id, ''); }); }
   function fillSelect(select, placeholder, data, value, label) {
-    select.innerHTML = ''; var first = document.createElement('option'); first.value = ''; first.textContent = placeholder; select.appendChild(first);
+    select.innerHTML = '';
+    var first = document.createElement('option'); first.value = ''; first.textContent = placeholder; select.appendChild(first);
     (data || []).forEach(function (item) { var o = document.createElement('option'); o.value = value(item); o.textContent = label(item); select.appendChild(o); });
   }
   function lockSelect(select, placeholder) { fillSelect(select, placeholder, [], String, String); select.disabled = true; }
-  function renderStep() {
-    state.step = Math.max(1, Math.min(3, state.step));
-    document.querySelectorAll('[data-panel]').forEach(function (panel) { panel.hidden = Number(panel.getAttribute('data-panel')) !== state.step; });
-    document.querySelectorAll('.stepper-step').forEach(function (button) {
-      var n = Number(button.dataset.step); button.classList.toggle('active', n === state.step); button.classList.toggle('complete', n < state.step);
-      if (n === state.step) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
-      button.disabled = n > state.step || state.busy;
-    });
-    $('stepTitle').textContent = titles[state.step][0]; $('stepSubtitle').textContent = titles[state.step][1];
-    var eyebrow = $('formEyebrow'); if (eyebrow) eyebrow.textContent = 'STEP ' + state.step + ' OF 3 · ' + (state.step === 1 ? 'COORDINATOR' : state.step === 2 ? 'LOCATION' : 'REVIEW');
-    $('next1').disabled = !state.ready || state.busy; $('next2').disabled = state.busy; el.submit.disabled = !state.ready || state.busy;
-    if (state.step === 3) fillReview();
+  function refreshSubmitState() {
+    el.submit.disabled = !state.ready || state.busy || state.paused;
+    if (state.busy) el.submit.textContent = 'Submitting securely…';
+    else el.submit.textContent = 'Submit registration';
   }
-  function validateStep(step) {
+  function validateAll() {
     var errors = {};
-    if (step === 1) {
-      if (!el.position.value) errors.position = 'Please choose a position.';
-      var parts = el.name.value.trim().split(/\s+/).filter(Boolean);
-      if (parts.length < 2 || el.name.value.trim().length > 100) errors.name = 'Enter the coordinator’s first and last name.';
-      if (!normalizePhone(el.phone.value)) errors.phone = 'Enter a valid Nigerian phone number, for example 08012345678.';
-    } else if (step === 2) {
-      if (!el.lga.value) errors.lga = 'Please choose a local government.';
-      if (!el.ward.value) errors.ward = 'Please choose a ward.';
-      if (!el.pu.value) errors.pu = 'Please choose a polling unit.';
+    if (!el.position.value) errors.position = 'Please choose a position.';
+    var parts = el.name.value.trim().split(/\s+/).filter(Boolean);
+    if (parts.length < 2 || el.name.value.trim().length > 100) errors.name = 'Enter the coordinator’s first and last name.';
+    if (!normalizePhone(el.phone.value)) errors.phone = 'Enter a valid Nigerian phone number, for example 08012345678.';
+    if (!el.lga.value) errors.lga = 'Please choose a local government.';
+    if (!el.ward.value) errors.ward = 'Please choose a ward.';
+    if (!el.pu.value) errors.pu = 'Please choose a polling unit.';
+
+    clearErrors();
+    var order = ['position','name','phone','lga','ward','pu'];
+    order.forEach(function (id) { if (errors[id]) setError(id, errors[id]); });
+    var first = order.find(function (id) { return !!errors[id]; });
+    if (first) {
+      var field = $(first);
+      if (field && !field.disabled) {
+        field.focus({ preventScroll: true });
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      showBanner('Please check the fields marked below, then submit the form again.', 'warn');
     }
-    clearErrors(fieldsByStep[step] || []);
-    var first = null;
-    Object.keys(errors).forEach(function (id) { setError(id, errors[id]); if (!first) first = id; });
-    if (first) $(first).focus();
-    return !Object.keys(errors).length;
+    return !first;
   }
   function normalizePhone(value) {
     var d = String(value || '').replace(/\D/g, '');
@@ -89,12 +93,12 @@
       fillSelect(el.position, 'Choose a position', state.positionOptions, function (p) { return p.value; }, function (p) { return p.label; });
       el.position.disabled = false;
       try { var saved = localStorage.getItem('tk27_position'); if (saved) el.position.value = saved; } catch (_) {}
-      if (state.paused) { showBanner('Registration is temporarily paused. Please try again later.', 'warn'); return; }
-      if (!state.ready) { showBanner('The location directory is not available yet. Please contact the administrator.', 'warn'); return; }
+      if (state.paused) { refreshSubmitState(); showBanner('Registration is temporarily paused. Please try again later.', 'warn'); return; }
+      if (!state.ready) { refreshSubmitState(); showBanner('The location directory is not available yet. Please contact the administrator.', 'warn'); return; }
       var lgas = await db.rpc('get_public_lgas');
       if (lgas.error) throw lgas.error;
       fillSelect(el.lga, 'Choose a local government', lgas.data || [], function (l) { return l.lga_code; }, function (l) { return l.lga; });
-      el.lga.disabled = false; hideBanner(); renderStep();
+      el.lga.disabled = false; hideBanner(); refreshSubmitState();
     } catch (error) {
       console.error(error); showBanner('We could not load the location directory. Check your connection and try again.', 'error', init);
     }
@@ -117,18 +121,10 @@
       fillSelect(el.pu, 'Choose a polling unit', result.data || [], function (p) { return p.full_pu_code; }, function (p) { return p.polling_unit + ' (' + p.polling_unit_code + ')'; }); el.pu.disabled = false;
     } catch (error) { console.error(error); showBanner('Could not load polling units. Please try again.', 'error', onWardChange); }
   }
-  function selectedText(select) { return select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '—'; }
-  function fillReview() {
-    $('reviewPosition').textContent = selectedText(el.position); $('reviewName').textContent = el.name.value.trim();
-    $('reviewPhone').textContent = normalizePhone(el.phone.value) || el.phone.value.trim(); $('reviewLga').textContent = selectedText(el.lga);
-    $('reviewWard').textContent = selectedText(el.ward); $('reviewPu').textContent = selectedText(el.pu);
-  }
-  function moveTo(step) { hideBanner(); state.step = step; renderStep(); var heading = $('stepTitle'); if (heading) heading.focus({ preventScroll: true }); }
   async function submit(event) {
     event.preventDefault(); if (state.busy || !state.ready || state.paused) return;
-    if (!validateStep(1)) { moveTo(1); return; }
-    if (!validateStep(2)) { moveTo(2); return; }
-    state.busy = true; hideBanner(); $('submitBtn').textContent = 'Submitting securely…'; renderStep();
+    if (!validateAll()) return;
+    state.busy = true; hideBanner(); refreshSubmitState();
     try {
       // Public submission is routed through the server-side Edge Function so direct
       // anonymous RPC execution can be revoked and attempts can be rate-limited.
@@ -224,13 +220,20 @@
       } else if (/duplicate_record|matching details already exists/i.test(msg) || code === 'DUPLICATE_RECORD') {
         showBanner('We could not submit this registration because a record with matching details already exists. No new record has been created. Please check the details or contact the administrator if you believe this is an error.', 'warn');
       } else if (/phone/i.test(msg) || code === 'TK27_PHONE_INVALID') {
-        moveTo(1); setError('phone','Please enter a valid Nigerian phone number.'); showBanner('Please check the highlighted phone number.', 'error');
+        setError('phone','Please enter a valid Nigerian phone number.'); el.phone.focus({ preventScroll: true }); el.phone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showBanner('Please check the highlighted phone number.', 'error');
       } else if (/first and last name|coordinator.?s name|valid position|select a valid position/i.test(msg)) {
-        moveTo(1); showBanner('Please check the coordinator name and selected position, then try again.', 'error');
+        var invalidId = /valid position|select a valid position/i.test(msg) ? 'position' : 'name';
+        setError(invalidId, invalidId === 'position' ? 'Please choose a valid position.' : 'Enter the coordinator’s first and last name.');
+        $(invalidId).focus({ preventScroll: true }); $(invalidId).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showBanner('Please check the highlighted coordinator details, then try again.', 'error');
       } else if (/refresh the form|submission key/i.test(msg)) {
         showBanner('This form session could not be validated. Refresh the page, re-enter the details and submit again. If a previous attempt may have completed, ask the administrator to check before resubmitting.', 'error');
       } else if (/location|polling unit|ward|local government/i.test(msg)) {
-        moveTo(2); showBanner('The selected location could not be validated. Please reselect the LGA, ward and polling unit, then try again.', 'error');
+        var locationId = /polling unit/i.test(msg) ? 'pu' : /ward/i.test(msg) ? 'ward' : 'lga';
+        setError(locationId, 'Please select a valid ' + (locationId === 'pu' ? 'polling unit' : locationId === 'lga' ? 'local government' : 'ward') + '.');
+        $(locationId).focus({ preventScroll: true }); $(locationId).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showBanner('The selected location could not be validated. Please check the location fields, then try again.', 'error');
       } else if (code === 'RATE_LIMITED' || status === 429) {
         showBanner('Too many submission attempts have come from this network in a short period. Please wait a few minutes and try again.', 'warn');
       } else if (code === 'SUBMISSION_GATEWAY_NOT_FOUND' || status === 404) {
@@ -247,15 +250,15 @@
         showBanner('The server could not complete this submission. Your details are still on this page. Check the browser Console for the [TK27] submission diagnostic, then retry or contact the administrator.');
       }
       el.banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } finally { state.busy = false; $('submitBtn').textContent = 'Submit registration'; renderStep(); }
+    } finally { state.busy = false; refreshSubmitState(); }
   }
-  el.position.addEventListener('change', function () { clearErrors(['position']); try { localStorage.setItem('tk27_position',el.position.value); } catch (_) {} });
-  ['name','phone'].forEach(function (id) { $(id).addEventListener('input', function () { setError(id,''); }); });
-  el.lga.addEventListener('change', onLgaChange); el.ward.addEventListener('change', onWardChange);
-  $('next1').addEventListener('click', function () { if (validateStep(1)) moveTo(2); });
-  $('next2').addEventListener('click', function () { if (validateStep(2)) moveTo(3); });
-  $('back2').addEventListener('click', function () { moveTo(1); }); $('back3').addEventListener('click', function () { moveTo(2); });
-  document.querySelectorAll('.stepper-step').forEach(function (b) { b.addEventListener('click', function () { var n = Number(b.dataset.step); if (n < state.step) moveTo(n); }); });
+  el.position.addEventListener('change', function () { clearErrors(['position']); hideBanner(); try { localStorage.setItem('tk27_position',el.position.value); } catch (_) {} });
+  el.name.addEventListener('input', function () { setError('name',''); });
+  el.phone.addEventListener('input', function () { setError('phone',''); });
+  el.lga.addEventListener('change', function () { hideBanner(); onLgaChange(); });
+  el.ward.addEventListener('change', function () { hideBanner(); onWardChange(); });
+  el.pu.addEventListener('change', function () { setError('pu',''); });
+  [el.name, el.phone].forEach(function (field) { field.addEventListener('input', function () { if (!el.banner.hidden) hideBanner(); }); });
   el.form.addEventListener('submit', submit);
-  renderStep(); init();
+  refreshSubmitState(); init();
 })();

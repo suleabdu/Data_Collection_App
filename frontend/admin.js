@@ -648,17 +648,69 @@
     showToast('Ward coverage export prepared for ' + current.length + ' ward(s).');
   }
   async function retrySheetSync() {
-    var button = $('retrySyncBtn'); button.disabled = true; button.textContent = 'Retrying…';
+    var button = $('retrySyncBtn');
+    button.disabled = true; button.textContent = 'Retrying…';
     try {
       var result = await db.functions.invoke('sync-google-sheet', { body: { action: 'retry' } });
       if (result.error) throw result.error;
       var data = result.data || {};
-      showToast('Sheet sync retry finished. Synced: ' + fmtNumber(data.synced) + ', failed: ' + fmtNumber(data.failed) + '.');
+      var remaining = Number(data.outstandingEvents || 0);
+      $('sheetMirrorNote').textContent = remaining === 0
+        ? 'No pending sync events remained at the last check. Use Rebuild Sheet mirror to verify every record against Supabase.'
+        : remaining + ' sync event(s) remain queued. Retry again or rebuild the mirror for a complete consistency check.';
+      showToast('Sheet sync retry finished. Synced: ' + fmtNumber(data.synced) + ', failed: ' + fmtNumber(data.failed) + ', remaining: ' + fmtNumber(remaining) + '.');
       await loadStats();
     } catch (error) {
       console.error('[TK27] Sheet sync retry failed', { code: error && error.code, message: error && error.message });
-      showBanner('dashBanner', 'Could not retry Sheet sync. Check Edge Function secrets and the Apps Script receiver.', 'error');
-    } finally { button.disabled = false; button.textContent = 'Retry Sheet sync'; }
+      showBanner('dashBanner', 'Could not retry pending Sheet sync. Check the sync function secrets and Apps Script receiver.', 'error');
+    } finally { button.disabled = false; button.textContent = 'Retry pending sync'; }
+  }
+
+  async function rebuildSheetMirror() {
+    var button = $('reconcileSheetBtn');
+    var note = $('sheetMirrorNote');
+    var approved = window.confirm(
+      'Rebuild the COORDINATOR_RECORDS tab from Supabase?\n\n' +
+      'The system will take a consistent database snapshot, stage it, verify record count and SHA-256 checksum, then replace the Sheet records. ' +
+      'Changes made after the snapshot will be replayed from the sync queue. Do not edit COORDINATOR_RECORDS manually.'
+    );
+    if (!approved) return;
+    button.disabled = true;
+    var retryButton = $('retrySyncBtn'); retryButton.disabled = true;
+    var originalText = button.textContent;
+    button.textContent = 'Verifying & rebuilding…';
+    note.textContent = 'Reconciliation running: staging Supabase records, verifying a checksum and replaying newer changes. Keep this page open.';
+    showBanner('dashBanner', '', 'error');
+    try {
+      var result = await db.functions.invoke('sync-google-sheet', { body: { action: 'reconcile' } });
+      if (result.error) {
+        var detail = result.error.message || 'Unknown reconciliation error';
+        console.error('[TK27] Sheet mirror reconciliation failed', { code: result.error.code, message: detail });
+        throw new Error(detail);
+      }
+      var data = result.data || {};
+      if (!data.success || !data.checksumsMatch || Number(data.sourceRecords) !== Number(data.sheetRecords)) {
+        throw new Error(data.error || 'The database and Sheet checksum/count did not verify. The mirror must not be marked as matched.');
+      }
+      var checkShort = String(data.sheetChecksum || '').slice(0, 12);
+      if (data.status === 'MATCHED') {
+        note.textContent = 'MATCHED at ' + niceDate(new Date().toISOString(), true) + ': ' + fmtNumber(data.sheetRecords) + ' records · SHA-256 ' + checkShort + '… · no outstanding events at verification time.';
+        showToast('Google Sheets verified: ' + fmtNumber(data.sheetRecords) + ' records match the Supabase snapshot.');
+      } else if (Number(data.outstandingEvents || 0) > 0) {
+        note.textContent = 'Snapshot verified (' + fmtNumber(data.sheetRecords) + ' records; SHA-256 ' + checkShort + '…), but ' + fmtNumber(data.outstandingEvents) + ' sync event(s) remain. Retry pending sync and verify the queue reaches zero.';
+        showBanner('dashBanner', 'The full snapshot matched Supabase, but newer changes are still queued. Retry pending sync, then rebuild again if needed.', 'error');
+      } else {
+        note.textContent = 'The snapshot row count and SHA-256 checksum matched, but queue state could not be fully confirmed. Check function logs, run Retry pending sync, and rebuild again before treating the mirror as fully matched.';
+        showBanner('dashBanner', 'The Sheet snapshot was verified, but the queue could not be fully confirmed. Retry pending sync and check the sync function logs.', 'error');
+      }
+      await loadStats();
+    } catch (error) {
+      console.error('[TK27] Sheet mirror reconciliation failed', { code: error && error.code, message: error && error.message });
+      note.textContent = 'Reconciliation did not complete. The previous Sheet contents should remain intact unless the receiver reports a rollback failure. Check the function logs before retrying.';
+      showBanner('dashBanner', 'Could not verify/rebuild the Google Sheets mirror. Review the sync function logs; do not treat the Sheet as matched until reconciliation reports success.', 'error');
+    } finally {
+      button.disabled = false; button.textContent = originalText; retryButton.disabled = false;
+    }
   }
   async function loadAudit() {
     var result = await db.from('audit_log').select('created_at,actor_label,action,record_id,result').order('created_at', { ascending: false }).limit(100);
@@ -762,6 +814,7 @@
     $('exportWardGapsBtn').addEventListener('click', exportWardCsv);
     $('exportBtn').addEventListener('click', exportCsv);
     $('retrySyncBtn').addEventListener('click', retrySheetSync);
+    $('reconcileSheetBtn').addEventListener('click', rebuildSheetMirror);
     $('refreshBtn').addEventListener('click', refreshAll);
     $('pauseBtn').addEventListener('click', pauseToggle);
     $('signOut').addEventListener('click', signOut);

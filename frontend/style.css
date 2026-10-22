@@ -1210,3 +1210,10 @@ progress.coverage-track::-moz-progress-bar { border-radius: 999px; background: v
   .records-header-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.5fr); width: 100%; }
   .records-header-actions .btn { width: 100%; white-space: normal; line-height: 1.35; }
 }
+
+
+/* Exact Supabase → Google Sheets mirror controls. */
+.ops-summary .sheet-mirror-note { grid-column: 1 / -1; margin: -5px 0 0; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
+#reconcileSheetBtn { white-space: nowrap; }
+@media (max-width: 760px) { .ops-summary .sheet-mirror-note { margin-top: 0; } }
+@media (max-width: 500px) { .summary-actions { grid-template-columns: minmax(0,1fr); } #reconcileSheetBtn { white-space: normal; } }

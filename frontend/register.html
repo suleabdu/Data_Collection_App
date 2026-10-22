@@ -18,101 +18,71 @@
       </div>
     </header>
 
-    <section class="card form-card" id="formCard">
+    <section class="card form-card single-page-card" id="formCard">
       <div class="form-intro">
-        <span class="eyebrow" id="formEyebrow">STEP 1 OF 3 · COORDINATOR</span>
-        <h1 id="stepTitle" tabindex="-1">Let’s create your coordinator profile.</h1>
-        <p id="stepSubtitle" class="intro">Start with the coordinator’s role and contact details. You’ll confirm the location and review everything before submitting.</p>
+        <span class="eyebrow" id="formEyebrow">COORDINATOR REGISTRATION</span>
+        <h1 id="registrationTitle" tabindex="-1">Register a coordinator</h1>
+        <p id="registrationSubtitle" class="intro">Please complete the details below. Everything can be entered on this page, then submitted once.</p>
       </div>
 
-      <div class="stepper" aria-label="Registration progress">
-        <button class="stepper-step active" data-step="1" type="button" aria-current="step"><span>1</span><b>Coordinator</b></button>
-        <span class="stepper-line" aria-hidden="true"></span>
-        <button class="stepper-step" data-step="2" type="button" disabled><span>2</span><b>Location</b></button>
-        <span class="stepper-line" aria-hidden="true"></span>
-        <button class="stepper-step" data-step="3" type="button" disabled><span>3</span><b>Review</b></button>
-      </div>
-
-      <div id="banner" class="banner" role="alert" hidden></div>
-      <form id="form" novalidate autocomplete="off">
-        <section class="wizard-panel" data-panel="1">
+      <div id="banner" class="banner" role="alert" aria-live="polite" hidden></div>
+      <form id="form" class="single-page-form" novalidate autocomplete="off">
+        <section class="form-section" aria-labelledby="coordinatorDetailsTitle">
           <div class="panel-heading">
-            <span class="step-count">STEP 01 / 03</span>
-            <h2>Coordinator details</h2>
-            <p>Start with the role and the best contact details.</p>
+            <h2 id="coordinatorDetailsTitle">Coordinator details</h2>
+            <p>Tell us who the coordinator is and how to contact them.</p>
           </div>
-          <div class="field" id="f-position">
-            <label for="position">Position</label>
-            <select id="position" required disabled><option value="">Loading positions…</option></select>
-            <p class="error" id="e-position" hidden></p>
-          </div>
-          <div class="field" id="f-name">
-            <label for="name">Full name</label>
-            <input type="text" id="name" autocomplete="name" maxlength="100" placeholder="Enter first and last name" required>
-            <p class="field-hint">Use the name the coordinator is commonly known by.</p>
-            <p class="error" id="e-name" hidden></p>
-          </div>
-          <div class="field" id="f-phone">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" inputmode="tel" autocomplete="tel" maxlength="22" placeholder="08012345678" required>
-            <p class="field-hint">Nigerian mobile numbers are accepted in local or +234 format.</p>
-            <p class="error" id="e-phone" hidden></p>
-          </div>
-          <div class="wizard-actions wizard-actions-end">
-            <button type="button" class="btn primary" id="next1" disabled>Continue to location <span aria-hidden="true">→</span></button>
+          <div class="form-fields-grid">
+            <div class="field" id="f-position">
+              <label for="position">Position</label>
+              <select id="position" required disabled aria-describedby="e-position"><option value="">Loading positions…</option></select>
+              <p class="error" id="e-position" hidden></p>
+            </div>
+            <div class="field" id="f-name">
+              <label for="name">Full name</label>
+              <input type="text" id="name" autocomplete="name" maxlength="100" placeholder="Enter first and last name" required aria-describedby="e-name">
+              <p class="error" id="e-name" hidden></p>
+            </div>
+            <div class="field field-wide" id="f-phone">
+              <label for="phone">Phone number</label>
+              <input type="tel" id="phone" inputmode="tel" autocomplete="tel" maxlength="22" placeholder="08012345678" required aria-describedby="phoneHint e-phone">
+              <p class="field-hint" id="phoneHint">Nigerian mobile numbers are accepted in local or +234 format.</p>
+              <p class="error" id="e-phone" hidden></p>
+            </div>
           </div>
         </section>
 
-        <section class="wizard-panel" data-panel="2" hidden>
+        <section class="form-section" aria-labelledby="locationDetailsTitle">
           <div class="panel-heading">
-            <span class="step-count">STEP 02 / 03</span>
-            <h2>Where is the coordinator based?</h2>
-            <p>Choose the local government, ward and polling unit in order.</p>
+            <h2 id="locationDetailsTitle">Coordinator location</h2>
+            <p>Choose the local government, then the ward and polling unit. The next list opens after you make a selection.</p>
           </div>
-          <div class="field" id="f-lga">
-            <label for="lga">Local government area</label>
-            <select id="lga" required disabled><option value="">Loading local governments…</option></select>
-            <p class="error" id="e-lga" hidden></p>
-          </div>
-          <div class="field" id="f-ward">
-            <label for="ward">Ward</label>
-            <select id="ward" required disabled><option value="">Select a local government first</option></select>
-            <p class="error" id="e-ward" hidden></p>
-          </div>
-          <div class="field" id="f-pu">
-            <label for="pu">Polling unit</label>
-            <select id="pu" required disabled><option value="">Select a ward first</option></select>
-            <p class="error" id="e-pu" hidden></p>
-          </div>
-          <div class="wizard-actions">
-            <button type="button" class="btn" id="back2">← Back</button>
-            <button type="button" class="btn primary" id="next2">Review details <span aria-hidden="true">→</span></button>
+          <div class="form-fields-grid">
+            <div class="field" id="f-lga">
+              <label for="lga">Local government area</label>
+              <select id="lga" required disabled aria-describedby="e-lga"><option value="">Loading local governments…</option></select>
+              <p class="error" id="e-lga" hidden></p>
+            </div>
+            <div class="field" id="f-ward">
+              <label for="ward">Ward</label>
+              <select id="ward" required disabled aria-describedby="e-ward"><option value="">Select a local government first</option></select>
+              <p class="error" id="e-ward" hidden></p>
+            </div>
+            <div class="field field-wide" id="f-pu">
+              <label for="pu">Polling unit</label>
+              <select id="pu" required disabled aria-describedby="e-pu"><option value="">Select a ward first</option></select>
+              <p class="error" id="e-pu" hidden></p>
+            </div>
           </div>
         </section>
 
-        <section class="wizard-panel" data-panel="3" hidden>
-          <div class="panel-heading">
-            <span class="step-count">STEP 03 / 03</span>
-            <h2>Check before submitting</h2>
-            <p>Please take a moment to confirm the information is correct.</p>
-          </div>
-          <dl class="review-list">
-            <div><dt>Position</dt><dd id="reviewPosition">—</dd></div>
-            <div><dt>Full name</dt><dd id="reviewName">—</dd></div>
-            <div><dt>Phone number</dt><dd id="reviewPhone">—</dd></div>
-            <div><dt>Local government</dt><dd id="reviewLga">—</dd></div>
-            <div><dt>Ward</dt><dd id="reviewWard">—</dd></div>
-            <div><dt>Polling unit</dt><dd id="reviewPu">—</dd></div>
-          </dl>
-          <p class="privacy-note">Your details are used to maintain the coordinator directory and are available to authorised administrators.</p>
-          <div class="hp" aria-hidden="true"><label>Website<input type="text" id="website" tabindex="-1" autocomplete="off"></label></div>
-          <div class="wizard-actions">
-            <button type="button" class="btn" id="back3">← Edit details</button>
-            <button type="submit" class="btn primary" id="submitBtn" disabled>Submit registration</button>
-          </div>
-        </section>
+        <div class="hp" aria-hidden="true"><label>Website<input type="text" id="website" tabindex="-1" autocomplete="off"></label></div>
+        <p class="privacy-note">Your details are used to maintain the coordinator directory and are available to authorised administrators.</p>
+        <div class="single-page-submit">
+          <p class="form-footnote">Please submit one accurate record per coordinator. All fields are required.</p>
+          <button type="submit" class="btn primary" id="submitBtn" disabled>Submit registration</button>
+        </div>
       </form>
-      <p class="form-footnote">Please submit one accurate record per coordinator. Fields marked as required must be completed.</p>
     </section>
 
     <section class="card success-card" id="successCard" hidden aria-live="polite" aria-atomic="true">
