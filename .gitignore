@@ -4,3 +4,8 @@ node_modules/
 *.log
 .env
 .env.*
+migration-data/
+supabase/.temp/
+supabase/functions/.env
+supabase/functions/.env.*
+*.csv

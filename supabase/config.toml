@@ -1,0 +1,7 @@
+# Replace project_id after `supabase link` if you use the Supabase CLI.
+project_id = "tk27-ogun-coordinator"
+
+[functions.sync-google-sheet]
+# Database Webhooks are authenticated through a private custom header inside the function.
+# Admin retry calls validate the Supabase session and admin_users membership in code.
+verify_jwt = false

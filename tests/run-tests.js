@@ -220,7 +220,7 @@ test('5,042 PUs validate quickly', () => {
 // Phase 3-6: submission, duplicates, admin, export, router
 // =====================================================================
 const J = (v) => JSON.parse(JSON.stringify(v));
-const frontend = require(path.join(__dirname, '..', 'frontend', 'validate.js'));
+const frontend = require(path.join(__dirname, 'legacy-validate.js'));
 
 console.log('Phone and name validation');
 test('phone formats normalise to +234', () => {
@@ -386,20 +386,20 @@ test('admin passcode check is strict', () => {
   ['', 'secret1234', 'SECRET12345', 'SECRET123', undefined].forEach((p) => assert.throws(() => call('requireAdmin_', p), /Incorrect admin passcode/));
 });
 
-console.log('Router');
+console.log('Router — Supabase cutover');
 const respond = (action, params, method) => JSON.parse(call('handleRequest_', action, params, method).text);
-test('envelope and error handling', () => {
-  assert.deepStrictEqual(respond('ping', {}, 'GET').success, true);
-  assert.strictEqual(respond('nope', {}, 'GET').error.code, 'NOT_FOUND');
-  assert.strictEqual(respond('exportRecords', { type: 'ALL', passcode: 'wrong' }, 'POST').error.code, 'UNAUTHORIZED');
-  assert.strictEqual(respond('getDashboardStats', {}, 'POST').error.code, 'UNAUTHORIZED');       // admin actions are never public
-  assert.strictEqual(respond('getRecords', { passcode: 'x' }, 'GET').error.code, 'NOT_FOUND');   // admin actions are not reachable by GET
+test('legacy public and admin APIs are retired after Supabase cutover', () => {
+  ['getState', 'getLGAs', 'getWards', 'getPollingUnits', 'submitCoordinator', 'getRecords', 'getDashboardStats', 'exportRecords'].forEach((action) => {
+    const method = action === 'submitCoordinator' || action === 'exportRecords' ? 'POST' : 'GET';
+    const r = respond(action, {}, method);
+    assert.strictEqual(r.success, false, action);
+    assert.strictEqual(r.error.code, 'MIGRATED', action);
+  });
 });
-test('unexpected errors never leak internals', () => {
-  const r = respond('submitCoordinator', { position: 'WARD_COORDINATOR' }, 'POST');   // no spreadsheet in this sandbox -> internal TypeError
+test('sync receiver cannot be invoked via GET', () => {
+  const r = respond('syncSupabaseRecord', { syncSecret: 'not-a-secret' }, 'GET');
   assert.strictEqual(r.success, false);
-  assert.strictEqual(r.error.code, 'SERVER_ERROR');
-  assert.ok(!/TypeError|undefined|at /.test(r.error.message), r.error.message);
+  assert.strictEqual(r.error.code, 'MIGRATED');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

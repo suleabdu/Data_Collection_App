@@ -18,7 +18,7 @@ const context = vm.createContext({
 });
 const call = (name, ...args) => { context.__args = args; return vm.runInContext(`${name}(...__args)`, context); };
 const json = (v) => JSON.parse(JSON.stringify(v));
-const client = require('../frontend/validate.js');
+const client = require('./legacy-validate.js');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -231,32 +231,20 @@ test('csv structure', () => {
   assert.strictEqual(out, 'Name,Phone\r\n"Ola, A",+234801\r\n\'=bad,+234802');
 });
 
-console.log('Router');
+console.log('Router — Supabase cutover');
 const parse = (out) => JSON.parse(out.text);
-test('unknown action returns a clean error envelope', () => {
-  const r = parse(call('handleRequest_', 'nope', {}, 'GET'));
+test('legacy public endpoints return the migration envelope', () => {
+  ['getState', 'getLGAs', 'getWards', 'getPollingUnits', 'submitCoordinator', 'getRecords', 'getDashboardStats', 'exportRecords'].forEach((action) => {
+    const method = ['submitCoordinator', 'exportRecords'].includes(action) ? 'POST' : 'GET';
+    const r = parse(call('handleRequest_', action, {}, method));
+    assert.strictEqual(r.success, false, action);
+    assert.strictEqual(r.error.code, 'MIGRATED', action);
+  });
+});
+test('sync receiver is not exposed through GET', () => {
+  const r = parse(call('handleRequest_', 'syncSupabaseRecord', { syncSecret: 'not-a-secret' }, 'GET'));
   assert.strictEqual(r.success, false);
-  assert.strictEqual(r.error.code, 'NOT_FOUND');
-});
-test('ping works and uses the success envelope', () => {
-  const r = parse(call('handleRequest_', 'ping', {}, 'GET'));
-  assert.strictEqual(r.success, true);
-  assert.ok(r.data.version);
-});
-test('admin actions refuse a missing/wrong passcode', () => {
-  context.PropertiesService = { getScriptProperties: () => ({ getProperty: () => 'SECRETCODE1' }) };
-  assert.strictEqual(parse(call('handleRequest_', 'getDashboardStats', {}, 'POST')).error.code, 'UNAUTHORIZED');
-  assert.strictEqual(parse(call('handleRequest_', 'exportRecords', { passcode: 'wrong' }, 'POST')).error.code, 'UNAUTHORIZED');
-  assert.strictEqual(parse(call('handleRequest_', 'adminCheck', { passcode: 'SECRETCODE1' }, 'POST')).success, true);
-});
-test('admin actions cannot be reached through GET', () => {
-  assert.strictEqual(parse(call('handleRequest_', 'getRecords', {}, 'GET')).error.code, 'NOT_FOUND');
-});
-test('internal errors never leak details', () => {
-  context.PropertiesService = { getScriptProperties: () => { throw new Error('secret stack detail'); } };
-  const r = parse(call('handleRequest_', 'adminCheck', { passcode: 'x' }, 'POST'));
-  assert.strictEqual(r.error.code, 'SERVER_ERROR');
-  assert.ok(!JSON.stringify(r).includes('secret stack detail'));
+  assert.strictEqual(r.error.code, 'MIGRATED');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

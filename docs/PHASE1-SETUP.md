@@ -1,6 +1,6 @@
 # TK27 Ogun: Phase 1 setup (database + master geography)
 
-Do this while signed in as sulaimanabdul694@gmail.com.
+**Legacy reference only:** this document describes the original Apps Script-only Phase 1. For the Supabase migration and current deployment, follow [`docs/MIGRATION.md`](docs/MIGRATION.md). Keep using your existing private Google Sheet as the mirror; do not create a new blank spreadsheet solely for this migration.
 
 ## A. Create the Sheet and script (about 5 minutes)
 1. Go to sheets.google.com and create a blank spreadsheet. Name it **TK27 Ogun Database**.

@@ -1,269 +1,164 @@
-// Public collection form: Position, Name, Phone, then LGA > Ward > Polling Unit (cascading).
 (function () {
   'use strict';
-
-  var api = window.TK27_API;
-  var check = window.TK27_VALIDATE;
+  var db = window.TK27_DB;
   var $ = function (id) { return document.getElementById(id); };
-
-  var fields = ['position', 'name', 'phone', 'lga', 'ward', 'pu'];
+  var fieldsByStep = { 1: ['position', 'name', 'phone'], 2: ['lga', 'ward', 'pu'] };
+  var state = { step: 1, busy: false, ready: false, paused: false, positionOptions: [], submissionKey: newKey(), requestId: 0 };
   var el = {
-    form: $('form'), banner: $('banner'), submit: $('submitBtn'), stateName: $('stateName'),
-    formCard: $('formCard'), successCard: $('successCard'), website: $('website'),
-    position: $('position'), name: $('name'), phone: $('phone'), lga: $('lga'), ward: $('ward'), pu: $('pu')
+    form: $('form'), banner: $('banner'), formCard: $('formCard'), successCard: $('successCard'),
+    stateName: $('stateName'), position: $('position'), name: $('name'), phone: $('phone'),
+    lga: $('lga'), ward: $('ward'), pu: $('pu'), submit: $('submitBtn'), website: $('website')
   };
-
-  var token = { ward: 0, pu: 0 };           // ignore responses that arrive after the user changed their choice
-  var busy = false;
-  var ready = false;
-  var submissionKey = newKey();
-  var lastFingerprint = '';
-
-  // ---------- helpers ----------
+  var titles = {
+    1: ['Let’s get your details in place.', 'Share a few accurate details so the directory stays useful and up to date.'],
+    2: ['Let’s pin down the right location.', 'Select the coordinator’s local government, ward and polling unit.'],
+    3: ['A quick final check.', 'Confirm the details below before adding the record to the directory.']
+  };
   function newKey() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-    var out = '';
-    for (var i = 0; i < 32; i++) out += Math.floor(Math.random() * 16).toString(16);
-    return out;
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+    });
   }
-
   function showBanner(message, kind, retry) {
-    el.banner.className = 'banner ' + (kind || 'error');
-    el.banner.textContent = message;
-    if (retry) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'btn small';
-      button.textContent = 'Try again';
-      button.addEventListener('click', retry);
-      el.banner.appendChild(button);
-    }
-    el.banner.hidden = false;
+    el.banner.className = 'banner ' + (kind || 'error'); el.banner.textContent = message || '';
+    if (retry) { var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'Try again'; b.addEventListener('click', retry); el.banner.appendChild(b); }
+    el.banner.hidden = !message;
   }
-
   function hideBanner() { el.banner.hidden = true; }
-
-  function setError(field, message) {
-    var box = $('f-' + field), text = $('e-' + field);
-    if (!box || !text) return;
-    box.classList.toggle('invalid', !!message);
-    text.hidden = !message;
-    text.textContent = message || '';
+  function setError(id, message) {
+    var box = $('f-' + id), text = $('e-' + id); if (!box || !text) return;
+    box.classList.toggle('invalid', !!message); text.textContent = message || ''; text.hidden = !message;
   }
-
-  function clearErrors() { fields.forEach(function (f) { setError(f, ''); }); }
-
-  function fillSelect(select, placeholder, items, valueOf, labelOf) {
-    select.innerHTML = '';
-    var first = document.createElement('option');
-    first.value = '';
-    first.textContent = placeholder;
-    select.appendChild(first);
-    (items || []).forEach(function (item) {
-      var option = document.createElement('option');
-      option.value = valueOf(item);
-      option.textContent = labelOf(item);
-      select.appendChild(option);
+  function clearErrors(ids) { (ids || ['position','name','phone','lga','ward','pu']).forEach(function (id) { setError(id, ''); }); }
+  function fillSelect(select, placeholder, data, value, label) {
+    select.innerHTML = ''; var first = document.createElement('option'); first.value = ''; first.textContent = placeholder; select.appendChild(first);
+    (data || []).forEach(function (item) { var o = document.createElement('option'); o.value = value(item); o.textContent = label(item); select.appendChild(o); });
+  }
+  function lockSelect(select, placeholder) { fillSelect(select, placeholder, [], String, String); select.disabled = true; }
+  function renderStep() {
+    state.step = Math.max(1, Math.min(3, state.step));
+    document.querySelectorAll('[data-panel]').forEach(function (panel) { panel.hidden = Number(panel.getAttribute('data-panel')) !== state.step; });
+    document.querySelectorAll('.stepper-step').forEach(function (button) {
+      var n = Number(button.dataset.step); button.classList.toggle('active', n === state.step); button.classList.toggle('complete', n < state.step);
+      if (n === state.step) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
+      button.disabled = n > state.step || state.busy;
     });
+    $('stepTitle').textContent = titles[state.step][0]; $('stepSubtitle').textContent = titles[state.step][1];
+    $('next1').disabled = !state.ready || state.busy; $('next2').disabled = state.busy; el.submit.disabled = !state.ready || state.busy;
+    if (state.step === 3) fillReview();
   }
-
-  function lockSelect(select, placeholder) {
-    fillSelect(select, placeholder, [], String, String);
-    select.disabled = true;
-  }
-
-  function refreshSubmit() {
-    el.submit.disabled = busy || !ready;
-  }
-
-  // ---------- startup ----------
-  function loadState() {
-    api.get('getState').then(function (res) {
-      if (!res.success) { showBanner(res.error.message, 'error', loadState); return; }
-      var s = res.data;
-      el.stateName.textContent = String(s.state || '').toUpperCase() + ' STATE';
-      document.title = 'TK27 ' + s.state + ' Coordinator Data Collection';
-
-      fillSelect(el.position, 'Select position', s.positions, function (p) { return p.value; }, function (p) { return p.label; });
-      el.position.disabled = false;
-      try { var saved = localStorage.getItem('tk27_position'); if (saved) el.position.value = saved; } catch (e) { /* ignore */ }
-
-      if (s.paused) { showBanner('Data collection is paused at the moment. Please try again later.', 'warn'); return; }
-      if (!s.ready) { showBanner('The location list is not available yet. Please contact the administrator.', 'warn'); return; }
-      ready = true;
-      refreshSubmit();
-      loadLgas();
-    });
-  }
-
-  function loadLgas() {
-    fillSelect(el.lga, 'Loading LGAs...', [], String, String);
-    el.lga.disabled = true;
-    api.get('getLGAs').then(function (res) {
-      if (!res.success) { fillSelect(el.lga, 'Could not load', [], String, String); showBanner(res.error.message, 'error', loadLgas); return; }
-      hideBanner();
-      fillSelect(el.lga, 'Select local government', res.data, function (l) { return l.code; }, function (l) { return l.name; });
-      el.lga.disabled = false;
-    });
-  }
-
-  function onLgaChange() {
-    token.ward++; token.pu++;
-    lockSelect(el.pu, 'Select a ward first');
-    setError('lga', ''); setError('ward', ''); setError('pu', '');
-    if (!el.lga.value) { lockSelect(el.ward, 'Select a local government first'); return; }
-
-    var mine = token.ward;
-    fillSelect(el.ward, 'Loading wards...', [], String, String);
-    el.ward.disabled = true;
-    api.get('getWards', { lgaCode: el.lga.value }).then(function (res) {
-      if (mine !== token.ward) return;
-      if (!res.success) { lockSelect(el.ward, 'Could not load wards'); showBanner(res.error.message, 'error', onLgaChange); return; }
-      hideBanner();
-      fillSelect(el.ward, 'Select ward', res.data, function (w) { return w.code; }, function (w) { return w.name; });
-      el.ward.disabled = false;
-    });
-  }
-
-  function onWardChange() {
-    token.pu++;
-    setError('ward', ''); setError('pu', '');
-    if (!el.ward.value) { lockSelect(el.pu, 'Select a ward first'); return; }
-
-    var mine = token.pu;
-    fillSelect(el.pu, 'Loading polling units...', [], String, String);
-    el.pu.disabled = true;
-    api.get('getPollingUnits', { lgaCode: el.lga.value, wardCode: el.ward.value }).then(function (res) {
-      if (mine !== token.pu) return;
-      if (!res.success) { lockSelect(el.pu, 'Could not load polling units'); showBanner(res.error.message, 'error', onWardChange); return; }
-      hideBanner();
-      fillSelect(el.pu, 'Select polling unit', res.data, function (p) { return p.fullCode; }, function (p) { return p.name + ' (' + p.code + ')'; });
-      el.pu.disabled = false;
-    });
-  }
-
-  // ---------- submit ----------
-  function readValues() {
-    return {
-      position: el.position.value, name: el.name.value.trim(), phone: el.phone.value.trim(),
-      lgaCode: el.lga.value, wardCode: el.ward.value, puCode: el.pu.value
-    };
-  }
-
-  function validateLocally(v) {
+  function validateStep(step) {
     var errors = {};
-    if (!v.position) errors.position = 'Please select a position.';
-    if (!check.isValidName(v.name)) errors.name = "Please enter the coordinator's full name (first and last name).";
-    if (!check.normalizePhone(v.phone)) errors.phone = 'Please enter a valid Nigerian phone number, for example 08012345678.';
-    if (!v.lgaCode) errors.lga = 'Please select a local government.';
-    if (!v.wardCode) errors.ward = 'Please select a ward.';
-    if (!v.puCode) errors.pu = 'Please select a valid polling unit.';
-    return errors;
-  }
-
-  function showErrors(errors) {
-    clearErrors();
+    if (step === 1) {
+      if (!el.position.value) errors.position = 'Please choose a position.';
+      var parts = el.name.value.trim().split(/\s+/).filter(Boolean);
+      if (parts.length < 2 || el.name.value.trim().length > 100) errors.name = 'Enter the coordinator’s first and last name.';
+      if (!normalizePhone(el.phone.value)) errors.phone = 'Enter a valid Nigerian phone number, for example 08012345678.';
+    } else if (step === 2) {
+      if (!el.lga.value) errors.lga = 'Please choose a local government.';
+      if (!el.ward.value) errors.ward = 'Please choose a ward.';
+      if (!el.pu.value) errors.pu = 'Please choose a polling unit.';
+    }
+    clearErrors(fieldsByStep[step] || []);
     var first = null;
-    fields.forEach(function (f) {
-      if (errors[f]) { setError(f, errors[f]); if (!first) first = f; }
-    });
-    if (first) el[first].focus();
+    Object.keys(errors).forEach(function (id) { setError(id, errors[id]); if (!first) first = id; });
+    if (first) $(first).focus();
+    return !Object.keys(errors).length;
   }
-
-  function onSubmit(event) {
-    event.preventDefault();
-    if (busy || !ready) return;
-    hideBanner();
-
-    var values = readValues();
-    var errors = validateLocally(values);
-    if (Object.keys(errors).length) { showErrors(errors); return; }
-    clearErrors();
-
-    var fingerprint = JSON.stringify(values);
-    if (fingerprint !== lastFingerprint) { submissionKey = newKey(); lastFingerprint = fingerprint; }
-
-    busy = true;
-    el.submit.textContent = 'Submitting record...';
-    refreshSubmit();
-
-    api.post('submitCoordinator', Object.assign({ submissionKey: submissionKey, website: el.website.value }, values)).then(function (res) {
-      busy = false;
-      el.submit.textContent = 'Submit record';
-      refreshSubmit();
-
-      if (res.success) { showSuccess(res.data); return; }
-      if (res.error && res.error.fields) { showErrors(res.error.fields); }
-      showBanner(res.error ? res.error.message : 'An error occurred.', 'error');
-    });
+  function normalizePhone(value) {
+    var d = String(value || '').replace(/\D/g, '');
+    if (d.length === 11 && d.charAt(0) === '0') d = '234' + d.slice(1);
+    else if (d.length === 10 && /^[789]/.test(d)) d = '234' + d;
+    if (d.length === 13 && d.slice(0,3) === '234' && /^[789]/.test(d.slice(3,4))) return '+' + d;
+    return '';
   }
-
-  function showSuccess(data) {
-    var refEl = $('refNumber');
-    if (refEl) { refEl.textContent = data.recordId || ''; }
-
-    var notice = $('dupNotice');
-    if (notice) {
-      notice.hidden = !data.duplicate;
-      notice.textContent = data.duplicateMessage || '';
+  async function request(table, select, apply) {
+    var result = await db.from(table).select(select).order(apply.order || 'lga').limit(6000);
+    if (result.error) throw result.error;
+    return apply.map(result.data || []);
+  }
+  async function init() {
+    if (!window.TK27_DB_READY || !db) { showBanner('This form has not been connected to Supabase yet. Please contact the administrator.', 'error'); return; }
+    try {
+      var result = await db.rpc('public_app_status'); if (result.error) throw result.error;
+      var config = result.data || {}; el.stateName.textContent = String(config.state || 'Ogun').toUpperCase() + ' STATE';
+      document.title = 'TK27 ' + (config.state || 'Ogun') + ' Coordinator Registration';
+      state.paused = !!config.paused; state.ready = !!config.ready; state.positionOptions = config.positions || [];
+      fillSelect(el.position, 'Choose a position', state.positionOptions, function (p) { return p.value; }, function (p) { return p.label; });
+      el.position.disabled = false;
+      try { var saved = localStorage.getItem('tk27_position'); if (saved) el.position.value = saved; } catch (_) {}
+      if (state.paused) { showBanner('Registration is temporarily paused. Please try again later.', 'warn'); return; }
+      if (!state.ready) { showBanner('The location directory is not available yet. Please contact the administrator.', 'warn'); return; }
+      var lgas = await db.rpc('get_public_lgas');
+      if (lgas.error) throw lgas.error;
+      fillSelect(el.lga, 'Choose a local government', lgas.data || [], function (l) { return l.lga_code; }, function (l) { return l.lga; });
+      el.lga.disabled = false; hideBanner(); renderStep();
+    } catch (error) {
+      console.error(error); showBanner('We could not load the location directory. Check your connection and try again.', 'error', init);
     }
-
-    var list = $('summary');
-    if (list) {
-      var rows = [
-        ['Name', data.summary ? data.summary.name : ''],
-        ['Position', data.summary ? data.summary.position : ''],
-        ['Phone', data.summary ? data.summary.phone : ''],
-        ['Local government', data.summary ? data.summary.lga : ''],
-        ['Ward', data.summary ? data.summary.ward : ''],
-        ['Polling unit', data.summary ? data.summary.pollingUnit : '']
-      ];
-      list.innerHTML = '';
-      rows.forEach(function (r) {
-        var dt = document.createElement('dt'); dt.textContent = r[0];
-        var dd = document.createElement('dd'); dd.textContent = r[1];
-        var wrap = document.createElement('div'); wrap.appendChild(dt); wrap.appendChild(dd);
-        list.appendChild(wrap);
+  }
+  async function onLgaChange() {
+    state.requestId++; var token = state.requestId; lockSelect(el.ward, 'Loading wards…'); lockSelect(el.pu, 'Choose a ward first'); clearErrors(['lga','ward','pu']);
+    if (!el.lga.value) { lockSelect(el.ward, 'Choose a local government first'); return; }
+    try {
+      var result = await db.rpc('get_public_wards', { p_lga_code: el.lga.value });
+      if (token !== state.requestId) return; if (result.error) throw result.error;
+      fillSelect(el.ward, 'Choose a ward', result.data || [], function (w) { return w.ward_code; }, function (w) { return w.ward; }); el.ward.disabled = false;
+    } catch (error) { console.error(error); showBanner('Could not load wards. Please try again.', 'error', onLgaChange); }
+  }
+  async function onWardChange() {
+    state.requestId++; var token = state.requestId; lockSelect(el.pu, 'Loading polling units…'); clearErrors(['ward','pu']);
+    if (!el.ward.value) { lockSelect(el.pu, 'Choose a ward first'); return; }
+    try {
+      var result = await db.rpc('get_public_polling_units', { p_lga_code: el.lga.value, p_ward_code: el.ward.value });
+      if (token !== state.requestId) return; if (result.error) throw result.error;
+      fillSelect(el.pu, 'Choose a polling unit', result.data || [], function (p) { return p.full_pu_code; }, function (p) { return p.polling_unit + ' (' + p.polling_unit_code + ')'; }); el.pu.disabled = false;
+    } catch (error) { console.error(error); showBanner('Could not load polling units. Please try again.', 'error', onWardChange); }
+  }
+  function selectedText(select) { return select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent : '—'; }
+  function fillReview() {
+    $('reviewPosition').textContent = selectedText(el.position); $('reviewName').textContent = el.name.value.trim();
+    $('reviewPhone').textContent = normalizePhone(el.phone.value) || el.phone.value.trim(); $('reviewLga').textContent = selectedText(el.lga);
+    $('reviewWard').textContent = selectedText(el.ward); $('reviewPu').textContent = selectedText(el.pu);
+  }
+  function moveTo(step) { hideBanner(); state.step = step; renderStep(); var heading = $('stepTitle'); if (heading) heading.focus({ preventScroll: true }); }
+  async function submit(event) {
+    event.preventDefault(); if (state.busy || !state.ready || state.paused) return;
+    if (!validateStep(1)) { moveTo(1); return; }
+    if (!validateStep(2)) { moveTo(2); return; }
+    state.busy = true; hideBanner(); $('submitBtn').textContent = 'Submitting securely…'; renderStep();
+    try {
+      var result = await db.rpc('submit_coordinator', {
+        p_position: el.position.value, p_name: el.name.value.trim(), p_phone: el.phone.value.trim(),
+        p_lga_code: el.lga.value, p_ward_code: el.ward.value, p_pu_code: el.pu.value,
+        p_submission_key: state.submissionKey, p_website: el.website.value
       });
-    }
-
-    try { localStorage.setItem('tk27_position', el.position.value); } catch (e) { /* ignore */ }
-    if (el.formCard) el.formCard.hidden = true;
-    if (el.successCard) el.successCard.hidden = false;
-    window.scrollTo(0, 0);
+      if (result.error) throw result.error;
+      var data = result.data || {}; $('referenceNumber').textContent = data.recordId || 'Received';
+      $('dupNotice').hidden = !data.duplicate; $('dupNotice').textContent = data.duplicateMessage || '';
+      el.formCard.hidden = true; el.successCard.hidden = false; window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      console.error(error); var msg = String(error && error.message || '');
+      if (/paused/i.test(msg)) { state.paused = true; showBanner('Registration is temporarily paused. Please try again later.', 'warn'); }
+      else if (/phone/i.test(msg)) { moveTo(1); setError('phone','Please enter a valid Nigerian phone number.'); showBanner('Please check the highlighted detail.', 'error'); }
+      else if (/location|polling unit|ward|local government/i.test(msg)) { moveTo(2); showBanner('Please reselect the location and submit again.', 'error'); }
+      else showBanner('We could not submit this record. Your form is still here; please check your connection and try again.', 'error');
+    } finally { state.busy = false; $('submitBtn').textContent = 'Submit registration'; renderStep(); }
   }
-
-  // ---------- wire up ----------
-  el.lga.addEventListener('change', onLgaChange);
-  el.ward.addEventListener('change', onWardChange);
-  el.form.addEventListener('submit', onSubmit);
-
-  var addAnotherBtn = $('addAnother');
-  if (addAnotherBtn) {
-    addAnotherBtn.addEventListener('click', function () {
-      var keepPosition = el.position.value;
-      el.form.reset();
-      el.position.value = keepPosition;
-      lockSelect(el.ward, 'Select a local government first');
-      lockSelect(el.pu, 'Select a ward first');
-      clearErrors();
-      hideBanner();
-      submissionKey = newKey();
-      lastFingerprint = '';
-      if (el.successCard) el.successCard.hidden = true;
-      if (el.formCard) el.formCard.hidden = false;
-      window.scrollTo(0, 0);
-      el.name.focus();
-    });
+  function addAnother() {
+    el.form.reset(); el.website.value = ''; state.submissionKey = newKey(); state.paused = false;
+    lockSelect(el.ward,'Choose a local government first'); lockSelect(el.pu,'Choose a ward first');
+    try { var saved = localStorage.getItem('tk27_position'); if (saved) el.position.value = saved; } catch (_) {}
+    el.successCard.hidden = true; el.formCard.hidden = false; clearErrors(); hideBanner(); moveTo(1); init();
   }
-
-  fields.forEach(function (f) {
-    var input = el[f];
-    if (input) {
-      input.addEventListener('input', function () { setError(f, ''); });
-    }
-  });
-
-  refreshSubmit();
-  loadState();
+  el.position.addEventListener('change', function () { clearErrors(['position']); try { localStorage.setItem('tk27_position',el.position.value); } catch (_) {} });
+  ['name','phone'].forEach(function (id) { $(id).addEventListener('input', function () { setError(id,''); }); });
+  el.lga.addEventListener('change', onLgaChange); el.ward.addEventListener('change', onWardChange);
+  $('next1').addEventListener('click', function () { if (validateStep(1)) moveTo(2); });
+  $('next2').addEventListener('click', function () { if (validateStep(2)) moveTo(3); });
+  $('back2').addEventListener('click', function () { moveTo(1); }); $('back3').addEventListener('click', function () { moveTo(2); });
+  document.querySelectorAll('.stepper-step').forEach(function (b) { b.addEventListener('click', function () { var n = Number(b.dataset.step); if (n < state.step) moveTo(n); }); });
+  el.form.addEventListener('submit', submit); $('addAnother').addEventListener('click', addAnother);
+  renderStep(); init();
 })();

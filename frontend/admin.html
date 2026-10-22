@@ -3,95 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TK27 Data Administration</title>
   <meta name="robots" content="noindex, nofollow">
-  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#1E1B4B">
+  <title>TK27 | Coordinator Operations</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
-<body>
-  <main class="shell wide">
-    <header class="top">
-      <div class="brand">TK<span>27</span> / ADMIN</div>
-      <p class="title">Data Administration</p>
+<body class="admin-page">
+  <main class="shell wide admin-shell">
+    <header class="top admin-top">
+      <div class="brand">TK<span>27</span> <i>/ OPERATIONS</i></div>
+      <p class="title">Coordinator administration</p>
+      <p class="top-subtitle">One live workspace for records, verification and directory health.</p>
     </header>
 
-    <!-- sign in -->
-    <section class="card narrow" id="loginCard">
-      <div id="loginBanner" class="banner error" role="alert" hidden></div>
-      <form id="loginForm" autocomplete="off">
-        <div class="field">
-          <label for="passcode">Admin passcode</label>
-          <input type="password" id="passcode" autocomplete="current-password">
-        </div>
-        <button type="submit" class="btn primary" id="loginBtn">Sign in</button>
+    <section class="card narrow admin-login-card" id="loginCard">
+      <span class="eyebrow">ADMINISTRATOR ACCESS</span>
+      <h1>Welcome back.</h1>
+      <p class="intro">Sign in with your authorised TK27 administrator account.</p>
+      <div id="loginBanner" class="banner" role="alert" hidden></div>
+      <form id="loginForm" autocomplete="on">
+        <div class="field"><label for="email">Administrator email</label><input type="email" id="email" autocomplete="username" required placeholder="admin@example.com"></div>
+        <div class="field"><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" required placeholder="Enter your password"></div>
+        <button type="submit" class="btn primary" id="loginBtn">Sign in securely</button>
       </form>
+      <p class="field-hint login-footnote">Access is restricted to active administrators. Do not share this account.</p>
     </section>
 
-    <!-- dashboard -->
-    <div id="dash" hidden>
-      <div class="row spaced">
-        <span class="meta" id="appStatus"></span>
-        <button class="btn small" id="refreshBtn" type="button">Refresh</button>
-        <button class="btn small" id="pauseBtn" type="button">Pause collection</button>
-        <button class="btn small" id="signOut" type="button">Sign out</button>
-      </div>
-      <div id="dashBanner" class="banner" hidden></div>
-
-      <div class="grid six" id="cards"></div>
-
-      <h2 class="section">Collection progress</h2>
-      <div class="card">
-        <div class="grid" id="progress"></div>
-        <p class="label spaced-top">Submissions, last 14 days</p>
-        <div id="daily" aria-label="Submissions per day"></div>
-      </div>
-
-      <h2 class="section">Coverage by local government</h2>
-      <div class="table-wrap"><table id="lgaTable"></table></div>
-
-      <h2 class="section">Master data</h2>
-      <div class="card" id="master"></div>
-
-      <h2 class="section">Actions</h2>
-      <div class="actions">
-        <button class="btn" id="buildBtn" type="button">Build / refresh master list</button>
-        <button class="btn" id="validateBtn" type="button">Validate master list</button>
-        <button class="btn" id="auditBtn" type="button">View audit log</button>
-      </div>
-      <pre class="result" id="result" hidden></pre>
-
-      <h2 class="section">Export (CSV, opens in Excel)</h2>
-      <div class="actions" id="exports"></div>
-
-      <h2 class="section">Records</h2>
-      <div class="card">
-        <div class="row">
-          <input type="search" id="q" placeholder="Search name, phone, LGA, ward, ID">
-          <select id="fPosition"><option value="">All positions</option></select>
-          <select id="fStatus">
-            <option value="">All statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="VERIFIED">Verified</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-          <label class="check"><input type="checkbox" id="fDup"> Possible duplicates only</label>
+    <div id="dashboard" hidden>
+      <div class="dashboard-toolbar">
+        <div class="live-state"><span class="live-dot" id="liveDot"></span><span id="connectionStatus">Connecting to live updates…</span><span class="live-divider">·</span><span id="lastUpdated">Not refreshed yet</span></div>
+        <div class="toolbar-actions">
+          <button class="btn small" id="refreshBtn" type="button">Refresh data</button>
+          <button class="btn small" id="pauseBtn" type="button">Pause collection</button>
+          <button class="btn small" id="signOut" type="button">Sign out</button>
         </div>
       </div>
-      <div class="table-wrap"><table id="records"></table></div>
-      <div class="pager">
-        <button class="btn small" id="prev" type="button">Previous</button>
-        <span class="meta" id="pageInfo"></span>
-        <button class="btn small" id="next" type="button">Next</button>
-      </div>
+      <div id="dashBanner" class="banner" role="status" hidden></div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-      <div id="auditWrap" hidden>
-        <h2 class="section">Audit log (latest 100)</h2>
-        <div class="table-wrap"><table id="audit"></table></div>
-      </div>
+      <section class="dashboard-heading">
+        <div><span class="eyebrow">LIVE OVERVIEW</span><h1>Coordinator records</h1><p>New submissions appear here automatically. Filters update the list without a page reload.</p></div>
+        <div class="system-pills"><span class="pill" id="collectionPill">Collection: —</span><span class="pill" id="masterPill">Master: —</span></div>
+      </section>
+      <div class="stats-grid" id="statsGrid" aria-label="Clickable record statistics"></div>
+
+      <section class="card ops-summary">
+        <div><span class="summary-label">POLLING UNIT MASTER</span><strong id="masterCount">—</strong><span class="summary-help">valid location records in Supabase</span></div>
+        <div><span class="summary-label">GOOGLE SHEETS MIRROR</span><strong id="syncCount">—</strong><span class="summary-help">records waiting for or failing sync</span></div>
+        <div class="summary-actions"><button class="btn small" id="retrySyncBtn" type="button">Retry Sheet sync</button><button class="btn small" id="exportBtn" type="button">Export filtered CSV</button></div>
+      </section>
+
+      <section class="records-section">
+        <div class="section-head"><div><h2>Directory records</h2><p id="resultSummary" class="meta">Loading records…</p></div><button type="button" class="btn small" id="resetFilters">Reset filters</button></div>
+        <div class="card filter-card">
+          <div class="filter-grid">
+            <div class="filter-search"><label for="q">Search records</label><input type="search" id="q" placeholder="Name, phone, reference, ward…" autocomplete="off"></div>
+            <div><label for="fPosition">Position</label><select id="fPosition"><option value="">All positions</option><option value="STATE_EXCO">State Exco</option><option value="LGA_COORDINATOR">LGA Coordinator</option><option value="WARD_COORDINATOR">Ward Coordinator</option></select></div>
+            <div><label for="fStatus">Verification status</label><select id="fStatus"><option value="">All statuses</option><option value="PENDING">Pending</option><option value="VERIFIED">Verified</option><option value="REJECTED">Rejected</option></select></div>
+            <div><label for="fLga">Local government</label><select id="fLga"><option value="">All LGAs</option></select></div>
+            <div><label for="fWard">Ward</label><select id="fWard" disabled><option value="">All wards</option></select></div>
+            <div><label for="fFrom">Submitted from</label><input type="date" id="fFrom"></div>
+            <div><label for="fTo">Submitted to</label><input type="date" id="fTo"></div>
+          </div>
+          <div class="filter-foot"><label class="check filter-check"><input type="checkbox" id="fDup"> Possible duplicates only</label><div id="activeChips" class="active-chips" aria-label="Active filters"></div></div>
+        </div>
+        <div class="table-wrap records-table-wrap"><table id="records"><thead><tr><th>Reference / submission</th><th>Coordinator</th><th>Position</th><th>Location</th><th>Verification</th><th>Review actions</th></tr></thead><tbody id="recordRows"><tr><td colspan="6" class="empty-cell">Loading the latest records…</td></tr></tbody></table></div>
+        <div class="pager"><button class="btn small" id="prev" type="button">← Previous</button><span class="meta" id="pageInfo">Page 1</span><button class="btn small" id="next" type="button">Next →</button></div>
+      </section>
+
+      <section class="audit-section">
+        <div class="section-head"><div><h2>Recent activity</h2><p class="meta">A trace of record creation and verification changes.</p></div><button class="btn small" id="auditBtn" type="button" aria-expanded="false">Show activity</button></div>
+        <div id="auditWrap" hidden><div class="table-wrap"><table id="audit"><thead><tr><th>Time</th><th>Action</th><th>Reference</th><th>Actor</th></tr></thead><tbody id="auditRows"></tbody></table></div></div>
+      </section>
     </div>
+    <footer class="site-foot">TK27 · Ogun State <span>Authorised administration only</span></footer>
   </main>
-
-  <script src="config.js"></script>
-  <script src="api.js"></script>
-  <script src="admin.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/config.js"></script>
+  <script src="/supabase-client.js"></script>
+  <script src="/admin.js"></script>
 </body>
 </html>

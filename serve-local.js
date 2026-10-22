@@ -5,7 +5,7 @@
 //   node serve-local.js            then open http://localhost:3000  and  http://localhost:3000/admin
 //   node serve-local.js 8080       (use another port)
 //
-// Needs only Node.js (no installs). Stop with Ctrl+C.
+// Needs only Node.js (no installs). Binds to loopback only for safer local testing. Stop with Ctrl+C.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -19,9 +19,9 @@ const headers = {};
 ((config.headers || [])[0] || { headers: [] }).headers.forEach((h) => { headers[h.key] = h.value; });
 
 const configJs = fs.readFileSync(path.join(root, 'config.js'), 'utf8');
-if (configJs.includes('PASTE_APPS_SCRIPT_WEB_APP_URL_HERE')) {
-  console.log('\nNOTE: frontend/config.js still has the placeholder, so the pages will say "not connected to the backend".');
-  console.log('      Paste your Apps Script /exec URL into it first.\n');
+if (configJs.includes('YOUR_PROJECT_REF') || configJs.includes('YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY')) {
+  console.log('\nNOTE: frontend/config.js still has placeholder Supabase settings, so the pages will say they are not connected.');
+  console.log('      Add your Supabase project URL and publishable/anon key before testing live requests.\n');
 }
 
 http.createServer((req, res) => {
@@ -39,9 +39,9 @@ http.createServer((req, res) => {
   }
   res.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
   res.end(fs.readFileSync(file));
-}).listen(port, () => {
+}).listen(port, '127.0.0.1', () => {
   console.log('TK27 local test server');
-  console.log('  Public form : http://localhost:' + port + '/');
-  console.log('  Admin       : http://localhost:' + port + '/admin');
+  console.log('  Public form : http://127.0.0.1:' + port + '/');
+  console.log('  Admin       : http://127.0.0.1:' + port + '/admin');
   console.log('Press Ctrl+C to stop.');
 });

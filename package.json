@@ -1,0 +1,25 @@
+{
+  "name": "tk27-ogun-state-system-v2",
+  "version": "1.0.0",
+  "description": "Mobile-first collection of State Excos, LGA Coordinators and Ward Coordinators. Frontend (plain HTML/CSS/JS) on Vercel, backend on Google Apps Script, database in Google Sheets.",
+  "main": "serve-local.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo \"No build step required\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suleabdu/Data_Collection_App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/suleabdu/Data_Collection_App/issues"
+  },
+  "homepage": "https://github.com/suleabdu/Data_Collection_App#readme"
+}

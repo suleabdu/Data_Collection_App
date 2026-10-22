@@ -50,37 +50,11 @@ function handleRequest_(action, params, method) {
 }
 
 function dispatch_(action, params, method) {
-  // ---- public reads (GET) ----
-  if (method === 'GET') {
-    switch (action) {
-      case 'ping': return { time: nowIso_(), version: TK27.VERSION };
-      case 'getState': return getPublicState_();
-      case 'getLGAs': return getLGAs_();
-      case 'getWards': return getWards_(params.lgaCode);
-      case 'getPollingUnits': return getPollingUnits_(params.lgaCode, params.wardCode);
-      default: throw new AppError('NOT_FOUND', 'Unknown request.');
-    }
-  }
-
-  // ---- public write (POST) ----
-  if (action === 'submitCoordinator') return submitCoordinator(params);
-
-  // ---- admin (POST + passcode) ----
-  requireAdmin_(params.passcode);
-  switch (action) {
-    case 'adminCheck': return { ok: true };
-    case 'getDashboardStats': return getDashboardStats();
-    case 'getAnalytics': return getAnalytics();
-    case 'getAnalytics': return getAnalytics();
-    case 'getRecords': return getRecordsPage(params);
-    case 'setVerification': return setVerification(params.recordId, params.status);
-    case 'getAuditLog': return getAuditLog(params.limit);
-    case 'setApplicationStatus': return setApplicationStatus(params.status);
-    case 'buildMasterList': return adminBuildMaster();
-    case 'validateMasterList': return validateMasterList();
-    case 'exportRecords': return exportData(params.type);
-    default: throw new AppError('NOT_FOUND', 'Unknown request.');
-  }
+  // After the Supabase cutover this Web App is a one-way Sheets mirror receiver only.
+  // Disable legacy public submission and passcode-based admin routes so the Sheet cannot
+  // drift from Supabase via the old interface.
+  if (action === 'syncSupabaseRecord' && method === 'POST') return syncSupabaseRecord_(params);
+  throw new AppError('MIGRATED', 'The legacy TK27 API is retired. Use the current TK27 website for registration and administration.');
 }
 
 /** What the public form needs to start: state name, positions and whether locations are ready. */
