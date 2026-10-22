@@ -67,7 +67,16 @@
           </div>
           <div class="filter-foot"><label class="check filter-check"><input type="checkbox" id="fDup"> Possible duplicates only</label><div id="activeChips" class="active-chips" aria-label="Active filters"></div></div>
         </div>
-        <div class="table-wrap records-table-wrap"><table id="records"><thead><tr><th>Reference / submission</th><th>Coordinator</th><th>Position</th><th>Location</th><th>Verification</th><th>Review actions</th></tr></thead><tbody id="recordRows"><tr><td colspan="6" class="empty-cell">Loading the latest records…</td></tr></tbody></table></div>
+        <div id="bulkToolbar" class="bulk-toolbar" hidden>
+          <div class="bulk-selection-summary"><strong id="selectedCount">0 records selected</strong><span class="meta">Select all applies to this page. Changing filters clears selection; paging does not.</span></div>
+          <div class="bulk-actions">
+            <button type="button" class="btn small action-verify" id="bulkVerify">Verify selected</button>
+            <button type="button" class="btn small action-reject" id="bulkReject">Reject selected</button>
+            <button type="button" class="btn small danger" id="bulkDelete">Delete selected</button>
+            <button type="button" class="btn small" id="clearSelection">Clear selection</button>
+          </div>
+        </div>
+        <div class="table-wrap records-table-wrap"><table id="records"><thead><tr><th class="selection-cell"><input type="checkbox" id="selectAllPage" aria-label="Select all records on this page" title="Select all records on this page"></th><th>Reference / submission</th><th>Coordinator</th><th>Position</th><th>Location</th><th>Verification</th><th>Review actions</th></tr></thead><tbody id="recordRows"><tr><td colspan="7" class="empty-cell">Loading the latest records…</td></tr></tbody></table></div>
         <div class="pager"><button class="btn small" id="prev" type="button">← Previous</button><span class="meta" id="pageInfo">Page 1</span><button class="btn small" id="next" type="button">Next →</button></div>
       </section>
 

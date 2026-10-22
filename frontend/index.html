@@ -12,16 +12,31 @@
   <main class="shell public-shell">
     <header class="top public-top">
       <div class="brand" aria-label="TK27">TK<span>27</span></div>
-      <div class="state" id="stateName">OGUN STATE</div>
-      <p class="title">Coordinator Registration</p>
-      <p class="top-subtitle">A clear, dependable record of our coordination structure.</p>
+      <div class="brand-copy">
+        <p class="title">Coordinator directory</p>
+        <div class="state" id="stateName">OGUN STATE</div>
+      </div>
+      <div class="header-assurance"><span class="assurance-dot" aria-hidden="true"></span> Secure registration</div>
     </header>
 
-    <section class="card form-card" id="formCard">
+    <div class="registration-layout" id="formCard">
+      <aside class="registration-aside" aria-label="Registration overview">
+        <span class="aside-eyebrow">WELCOME TO TK27</span>
+        <h2>A clear record begins with the right details.</h2>
+        <p class="aside-intro">Register a coordinator in three simple steps. Your details help keep the Ogun State coordinator directory accurate and organised.</p>
+        <div class="aside-steps" aria-label="Three registration steps">
+          <div class="aside-step"><span>01</span><div><strong>Coordinator details</strong><small>Role and contact information</small></div></div>
+          <div class="aside-step"><span>02</span><div><strong>Location</strong><small>LGA, ward and polling unit</small></div></div>
+          <div class="aside-step"><span>03</span><div><strong>Review and submit</strong><small>Confirm that everything is correct</small></div></div>
+        </div>
+        <div class="aside-assurance"><span class="assurance-check" aria-hidden="true">✓</span><p><strong>Your information matters.</strong><br>Records are available to authorised administrators for directory management.</p></div>
+      </aside>
+
+      <section class="card form-card">
       <div class="form-intro">
-        <span class="eyebrow">COORDINATOR DIRECTORY</span>
-        <h1 id="stepTitle" tabindex="-1">Let’s get your details in place.</h1>
-        <p id="stepSubtitle" class="intro">Share a few accurate details so the directory stays useful and up to date.</p>
+        <span class="eyebrow" id="formEyebrow">STEP 1 OF 3 · COORDINATOR</span>
+        <h1 id="stepTitle" tabindex="-1">Let’s create your coordinator profile.</h1>
+        <p id="stepSubtitle" class="intro">Start with the coordinator’s role and contact details. You’ll confirm the location and review everything before submitting.</p>
       </div>
 
       <div class="stepper" aria-label="Registration progress">
@@ -112,16 +127,11 @@
         </section>
       </form>
       <p class="form-footnote">Please submit one accurate record per coordinator. Fields marked as required must be completed.</p>
-    </section>
+      </section>
+    </div>
 
-    <section class="card success-card" id="successCard" hidden>
-      <div class="success-mark" aria-hidden="true">✓</div>
-      <span class="eyebrow">SUBMISSION COMPLETE</span>
-      <h1>Your details have been received.</h1>
-      <p class="intro">Thank you. Keep this reference number for your records.</p>
-      <div class="reference-box"><span>Reference number</span><strong id="referenceNumber">—</strong></div>
-      <div id="dupNotice" class="banner warn" hidden></div>
-      <button type="button" class="btn primary" id="addAnother">Add another coordinator</button>
+    <section class="card success-card" id="successCard" hidden aria-live="polite" aria-atomic="true">
+      <h1>Thank you, your record has been submitted.</h1>
     </section>
     <footer class="site-foot">TK27 · Ogun State <span>Secure coordinator record collection</span></footer>
   </main>

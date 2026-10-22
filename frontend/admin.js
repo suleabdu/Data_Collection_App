@@ -2,7 +2,7 @@
   'use strict';
   var db = window.TK27_DB;
   var $ = function (id) { return document.getElementById(id); };
-  var state = { user: null, session: null, page: 1, pageSize: 25, total: 0, realtime: null, searchTimer: null, reloadTimer: null, paused: false, lastEvent: null, loading: false, pendingReload: false };
+  var state = { user: null, session: null, page: 1, pageSize: 15, total: 0, realtime: null, searchTimer: null, reloadTimer: null, paused: false, lastEvent: null, loading: false, pendingReload: false, selected: new Set(), currentRows: [] };
   var POSITIONS = { STATE_EXCO: 'State Exco', LGA_COORDINATOR: 'LGA Coordinator', WARD_COORDINATOR: 'Ward Coordinator' };
   var FIELDS = ['q','fPosition','fStatus','fLga','fWard','fFrom','fTo','fDup'];
   function node(tag, text, className) { var n=document.createElement(tag); if (text !== undefined && text !== null) n.textContent=String(text); if (className) n.className=className; return n; }
@@ -82,11 +82,15 @@
     if(f.q)chips.push(['Search: '+f.q,'q']);if(f.position)chips.push([POSITIONS[f.position]||f.position,'fPosition']);if(f.status)chips.push([f.status,'fStatus']);
     if(f.lga)chips.push([$('fLga').selectedOptions[0].textContent,'fLga']);if(f.ward)chips.push([$('fWard').selectedOptions[0].textContent,'fWard']);
     if(f.from)chips.push(['From '+f.from,'fFrom']);if(f.to)chips.push(['To '+f.to,'fTo']);if(f.duplicates)chips.push(['Possible duplicates','fDup']);
-    chips.forEach(function(c){var b=node('button',c[0]+' ×','filter-chip');b.type='button';b.title='Remove filter';b.addEventListener('click',function(){var target=$(c[1]);if(c[1]==='fDup')target.checked=false;else target.value='';if(c[1]==='fLga'){target.dispatchEvent(new Event('change'));return;}if(c[1]==='fWard'&&!$('fLga').value)return;state.page=1;loadRecords();});wrap.appendChild(b);});
+    chips.forEach(function(c){var b=node('button',c[0]+' ×','filter-chip');b.type='button';b.title='Remove filter';b.addEventListener('click',function(){var target=$(c[1]);if(c[1]==='fDup')target.checked=false;else target.value='';state.selected.clear();syncSelectionUI();if(c[1]==='fLga'){target.dispatchEvent(new Event('change'));return;}if(c[1]==='fWard'&&!$('fLga').value)return;state.page=1;loadRecords();});wrap.appendChild(b);});
   }
   function createCell(row,text,cls) { var td=node('td',text,cls);row.appendChild(td);return td; }
   function renderRecordRow(r) {
-    var tr=node('tr',null,r.duplicate_flag?'duplicate-row':'');
+    var tr=node('tr',null,(r.duplicate_flag?'duplicate-row ':'')+(state.selected.has(r.record_id)?'row-selected':''));tr.dataset.recordId=r.record_id;
+    var selectCell=node('td',null,'selection-cell');
+    var selectBox=node('input');selectBox.type='checkbox';selectBox.className='record-select';selectBox.checked=state.selected.has(r.record_id);selectBox.setAttribute('aria-label','Select record '+r.record_id);
+    selectBox.addEventListener('change',function(){if(selectBox.checked)state.selected.add(r.record_id);else state.selected.delete(r.record_id);tr.classList.toggle('row-selected',selectBox.checked);syncSelectionUI();});
+    selectCell.appendChild(selectBox);tr.appendChild(selectCell);
     var ref=node('td');ref.appendChild(node('strong',r.record_id,'record-ref'));ref.appendChild(node('span',niceDate(r.submitted_at,true),'table-subtext'));tr.appendChild(ref);
     var person=node('td');person.appendChild(node('strong',r.name,'person-name'));person.appendChild(node('span',r.phone,'table-subtext'));if(r.duplicate_flag)person.appendChild(node('span','Potential duplicate','duplicate-note'));tr.appendChild(person);
     createCell(tr,POSITIONS[r.position]||r.position,'position-cell');
@@ -98,16 +102,67 @@
     if(state.loading){state.pendingReload=true;return;}state.loading=true;activeFilterChips();$('recordRows').innerHTML='';$('recordRows').appendChild(emptyRow('Loading records…'));
     try {
       var start=(state.page-1)*state.pageSize;var result=await buildQuery().range(start,start+state.pageSize-1);if(result.error)throw result.error;
-      state.total=result.count||0;$('recordRows').innerHTML='';
-      if(!result.data||!result.data.length)$('recordRows').appendChild(emptyRow('No records match these filters. Try resetting one or more filters.'));
-      else result.data.forEach(function(r){$('recordRows').appendChild(renderRecordRow(r));});
+      state.total=result.count||0;state.currentRows=result.data||[];$('recordRows').innerHTML='';
+      if(!state.currentRows.length)$('recordRows').appendChild(emptyRow('No records match these filters. Try resetting one or more filters.'));
+      else state.currentRows.forEach(function(r){$('recordRows').appendChild(renderRecordRow(r));});
+      syncSelectionUI();
       var first=state.total?start+1:0,last=Math.min(start+state.pageSize,state.total);$('resultSummary').textContent=first+'–'+last+' of '+state.total.toLocaleString()+' matching records';
       $('pageInfo').textContent='Page '+state.page+' of '+Math.max(1,Math.ceil(state.total/state.pageSize));$('prev').disabled=state.page<=1;$('next').disabled=start+state.pageSize>=state.total;
       $('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     } catch(error){console.error(error);showBanner('dashBanner','Unable to load records: '+(error.message||'please try again.'),'error');$('recordRows').innerHTML='';$('recordRows').appendChild(emptyRow('Records could not be loaded.'));}
     finally{state.loading=false;if(state.pendingReload){state.pendingReload=false;setTimeout(function(){Promise.all([loadStats(),loadRecords()]).catch(function(e){console.error(e);});},0);}}
   }
-  function emptyRow(message){var tr=node('tr');var td=node('td',message,'empty-cell');td.colSpan=6;tr.appendChild(td);return tr;}
+  function emptyRow(message){var tr=node('tr');var td=node('td',message,'empty-cell');td.colSpan=7;tr.appendChild(td);return tr;}
+  function syncSelectionUI() {
+    var count=state.selected.size;
+    $('bulkToolbar').hidden=count===0;
+    $('selectedCount').textContent=count+' record'+(count===1?'':'s')+' selected';
+    var visible=state.currentRows||[];
+    var selectedVisible=visible.filter(function(r){return state.selected.has(r.record_id);}).length;
+    var all=$('selectAllPage');
+    all.checked=visible.length>0 && selectedVisible===visible.length;
+    all.indeterminate=selectedVisible>0 && selectedVisible<visible.length;
+    all.disabled=visible.length===0;
+    document.querySelectorAll('#recordRows tr[data-record-id]').forEach(function(tr){var selected=state.selected.has(tr.dataset.recordId);tr.classList.toggle('row-selected',selected);var input=tr.querySelector('.record-select');if(input)input.checked=selected;});
+  }
+  function selectCurrentPage(checked) {
+    (state.currentRows||[]).forEach(function(r){if(checked)state.selected.add(r.record_id);else state.selected.delete(r.record_id);});
+    document.querySelectorAll('#recordRows tr[data-record-id]').forEach(function(tr){
+      var selected=state.selected.has(tr.dataset.recordId);tr.classList.toggle('row-selected',selected);
+      var input=tr.querySelector('.record-select');if(input)input.checked=selected;
+    });
+    syncSelectionUI();
+  }
+  async function bulkAction(action) {
+    var ids=Array.from(state.selected);
+    if(!ids.length){showToast('Select at least one record first.');return;}
+    if(ids.length>500){showBanner('dashBanner','Select no more than 500 records per bulk action. Clear your selection or process it in smaller batches.','warn');return;}
+    var actionLabel=action==='VERIFY'?'verify':action==='REJECT'?'reject':'permanently delete';
+    var prompt=action==='DELETE'
+      ? 'Permanently delete '+ids.length+' selected record(s)? This cannot be undone. Deletion events will also be queued for the Google Sheets mirror.'
+      : 'Mark '+ids.length+' selected record(s) as '+(action==='VERIFY'?'verified':'rejected')+'?';
+    if(!window.confirm(prompt))return;
+    var buttons=['bulkVerify','bulkReject','bulkDelete','clearSelection','selectAllPage'].map(function(id){return $(id);});
+    buttons.forEach(function(b){b.disabled=true;});
+    var clicked=action==='VERIFY'?'bulkVerify':action==='REJECT'?'bulkReject':'bulkDelete';
+    var oldText=$(clicked).textContent;$(clicked).textContent='Processing…';
+    try {
+      var result=await db.rpc('admin_bulk_record_action',{p_record_ids:ids,p_action:action});
+      if(result.error)throw result.error;
+      var data=result.data||{};
+      state.selected.clear();
+      showToast((data.affected_count||0)+' record(s) '+(action==='VERIFY'?'verified':action==='REJECT'?'rejected':'deleted')+'.');
+      await Promise.all([loadStats(),loadRecords()]);
+      if(!$('auditWrap').hidden)await loadAudit();
+    } catch(error) {
+      console.error('[TK27] Bulk record action failed',{action:action,code:error&&error.code,message:error&&error.message,details:error&&error.details});
+      var code=error&&error.code?(' Diagnostic: '+error.code+'.'):'';
+      if(error&&error.code==='PGRST202')showBanner('dashBanner','The bulk-action database function is not installed yet. Apply migration 202610220002_admin_bulk_actions.sql in Supabase, then retry.'+code,'error');
+      else showBanner('dashBanner','Could not '+actionLabel+' the selected records. No success was reported; your selection has been retained.'+code,'error');
+    } finally {
+      buttons.forEach(function(b){b.disabled=false;});$(clicked).textContent=oldText;syncSelectionUI();
+    }
+  }
   async function updateStatus(recordId,status,button) {
     button.disabled=true;button.textContent='Saving…';
     try{var result=await db.from('coordinator_records').update({verification_status:status}).eq('record_id',recordId).select('record_id').single();if(result.error)throw result.error;showToast(recordId+' marked '+status.toLowerCase()+'.');await Promise.all([loadStats(),loadRecords()]);}
@@ -115,6 +170,7 @@
   }
   function applyQuickFilter(filter) {
     FIELDS.forEach(function(id){if(id==='fDup')$(id).checked=false;else $(id).value='';});
+    state.selected.clear(); syncSelectionUI();
     $('fWard').innerHTML='';$('fWard').appendChild(new Option('All wards',''));$('fWard').disabled=true;
     if(filter==='duplicates')$('fDup').checked=true;
     else if(filter.indexOf('status:')===0)$('fStatus').value=filter.split(':')[1];
@@ -122,9 +178,14 @@
     state.page=1;loadRecords();
   }
   function bindFilterEvents() {
-    ['fPosition','fStatus','fLga','fWard','fFrom','fTo','fDup'].forEach(function(id){$(id).addEventListener('change',async function(){state.page=1;if(id==='fLga'){try{await loadWards();}catch(e){showBanner('dashBanner','Could not load ward filters.','error');}}loadRecords();});});
-    $('q').addEventListener('input',function(){clearTimeout(state.searchTimer);state.searchTimer=setTimeout(function(){state.page=1;loadRecords();},280);});
-    $('resetFilters').addEventListener('click',async function(){FIELDS.forEach(function(id){if(id==='fDup')$(id).checked=false;else $(id).value='';});$('fWard').disabled=true;$('fWard').innerHTML='';$('fWard').appendChild(new Option('All wards',''));state.page=1;await loadRecords();});
+    $('selectAllPage').addEventListener('change',function(){selectCurrentPage($('selectAllPage').checked);});
+    $('bulkVerify').addEventListener('click',function(){bulkAction('VERIFY');});
+    $('bulkReject').addEventListener('click',function(){bulkAction('REJECT');});
+    $('bulkDelete').addEventListener('click',function(){bulkAction('DELETE');});
+    $('clearSelection').addEventListener('click',function(){state.selected.clear();selectCurrentPage(false);syncSelectionUI();});
+    ['fPosition','fStatus','fLga','fWard','fFrom','fTo','fDup'].forEach(function(id){$(id).addEventListener('change',async function(){state.selected.clear();syncSelectionUI();state.page=1;if(id==='fLga'){try{await loadWards();}catch(e){showBanner('dashBanner','Could not load ward filters.','error');}}loadRecords();});});
+    $('q').addEventListener('input',function(){state.selected.clear();syncSelectionUI();clearTimeout(state.searchTimer);state.searchTimer=setTimeout(function(){state.page=1;loadRecords();},280);});
+    $('resetFilters').addEventListener('click',async function(){FIELDS.forEach(function(id){if(id==='fDup')$(id).checked=false;else $(id).value='';});state.selected.clear();syncSelectionUI();$('fWard').disabled=true;$('fWard').innerHTML='';$('fWard').appendChild(new Option('All wards',''));state.page=1;await loadRecords();});
     $('prev').addEventListener('click',function(){if(state.page>1){state.page--;loadRecords();}});$('next').addEventListener('click',function(){if(state.page*state.pageSize<state.total){state.page++;loadRecords();}});
   }
   function csvSafe(value) { var s=String(value==null?'':value);if(/^[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'; }

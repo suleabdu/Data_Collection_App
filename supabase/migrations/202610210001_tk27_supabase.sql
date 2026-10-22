@@ -148,8 +148,8 @@ begin
   if not found then raise exception using errcode='22023',message='The selected location is not valid. Please choose it again.'; end if;
   select * into v_existing from public.coordinator_records where submission_key=p_submission_key limit 1;
   if found then
-    return jsonb_build_object('recordId',v_existing.record_id,'duplicate',v_existing.duplicate_flag,
-      'duplicateMessage',case when v_existing.duplicate_flag then 'This coordinator may already exist in the database. The record was saved and flagged for review.' else '' end,
+    return jsonb_build_object('success',true,'submitted',true,'alreadySubmitted',true,
+      'recordId',v_existing.record_id,'duplicate',v_existing.duplicate_flag,
       'summary',jsonb_build_object('name',v_existing.name,'position',v_existing.position,'phone',v_existing.phone,'lga',v_existing.lga,'ward',v_existing.ward,'pollingUnit',v_existing.polling_unit));
   end if;
   v_normalized_name:=public.normalize_tk27_name(v_name);
@@ -161,8 +161,8 @@ begin
   -- Recheck the idempotency key after any lock wait. Another request may have completed it.
   select * into v_existing from public.coordinator_records where submission_key=p_submission_key limit 1;
   if found then
-    return jsonb_build_object('recordId',v_existing.record_id,'duplicate',v_existing.duplicate_flag,
-      'duplicateMessage',case when v_existing.duplicate_flag then 'This coordinator may already exist in the database. The record was saved and flagged for review.' else '' end,
+    return jsonb_build_object('success',true,'submitted',true,'alreadySubmitted',true,
+      'recordId',v_existing.record_id,'duplicate',v_existing.duplicate_flag,
       'summary',jsonb_build_object('name',v_existing.name,'position',v_existing.position,'phone',v_existing.phone,'lga',v_existing.lga,'ward',v_existing.ward,'pollingUnit',v_existing.polling_unit));
   end if;
   select array_agg(hit.record_id order by hit.submitted_at desc) into v_matches from (
@@ -172,7 +172,17 @@ begin
     order by r.submitted_at desc limit 5
   ) hit;
   v_duplicate:=coalesce(array_length(v_matches,1),0)>0;
-  if v_duplicate then v_notes:='Possible duplicate of '||array_to_string(v_matches,', '); end if;
+  if v_duplicate then
+    -- Strict duplicate policy: do not allocate a record ID or insert a second row.
+    -- Do not return the matched record's name, phone, ID, or other personal details.
+    return jsonb_build_object(
+      'success',false,
+      'submitted',false,
+      'duplicate',true,
+      'code','DUPLICATE_RECORD',
+      'message','We could not submit this registration because a record with matching details already exists. No new record has been created. Please check the name and phone number, or contact the administrator if you believe this is an error.'
+    );
+  end if;
   select value into v_state from public.app_settings where key='ACTIVE_STATE';
   select value into v_state_code from public.app_settings where key='STATE_CODE';
   v_state:=coalesce(v_state,'Ogun'); v_state_code:=coalesce(v_state_code,'OG');
@@ -188,14 +198,14 @@ begin
     -- displaying an error after the browser retries a request whose response was delayed.
     select * into v_existing from public.coordinator_records where submission_key=p_submission_key limit 1;
     if found then
-      return jsonb_build_object('recordId',v_existing.record_id,'duplicate',v_existing.duplicate_flag,
-        'duplicateMessage',case when v_existing.duplicate_flag then 'This coordinator may already exist in the database. The record was saved and flagged for review.' else '' end,
-        'summary',jsonb_build_object('name',v_existing.name,'position',v_existing.position,'phone',v_existing.phone,'lga',v_existing.lga,'ward',v_existing.ward,'pollingUnit',v_existing.polling_unit));
+      return jsonb_build_object('success',true,'submitted',true,'alreadySubmitted',true,
+      'recordId',v_existing.record_id,'duplicate',v_existing.duplicate_flag,
+      'summary',jsonb_build_object('name',v_existing.name,'position',v_existing.position,'phone',v_existing.phone,'lga',v_existing.lga,'ward',v_existing.ward,'pollingUnit',v_existing.polling_unit));
     end if;
     raise;
   end;
-  return jsonb_build_object('recordId',v_record_id,'duplicate',v_duplicate,
-    'duplicateMessage',case when v_duplicate then 'This coordinator may already exist in the database. The record was saved and flagged for review.' else '' end,
+  return jsonb_build_object('success',true,'submitted',true,'alreadySubmitted',false,
+    'recordId',v_record_id,'duplicate',false,
     'summary',jsonb_build_object('name',v_name,'position',v_position,'phone',v_phone,'lga',v_geo.lga,'ward',v_geo.ward,'pollingUnit',v_geo.polling_unit));
 end;
 $$;

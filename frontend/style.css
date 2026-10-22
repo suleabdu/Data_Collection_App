@@ -724,3 +724,212 @@ input[type="email"]:focus,input[type="password"]:focus,input[type="date"]:focus 
   .section-head h2 { font-size:17px; }
   .pager .meta { text-align:center; font-size:11px; }
 }
+
+
+/* Accessible record selection and bulk operations */
+.selection-cell { width:42px; min-width:42px; text-align:center!important; vertical-align:middle!important; }
+.selection-cell input[type="checkbox"], .record-select, #selectAllPage { width:17px; height:17px; accent-color:var(--primary); cursor:pointer; }
+.bulk-toolbar { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin:0 0 12px; padding:14px 16px; border:1px solid #C7D2FE; border-radius:12px; background:#F8FAFF; }
+.bulk-selection-summary { display:flex; flex-direction:column; gap:2px; }
+.bulk-selection-summary strong { color:#312E81; font-size:13px; }
+.bulk-selection-summary .meta { font-size:11px; }
+.bulk-actions { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.btn.danger { color:#BE123C; border-color:#FECDD3; background:#FFF1F2; }
+.btn.danger:hover { background:#FFE4E6; }
+#recordRows tr.row-selected td { background:#EEF2FF!important; }
+#recordRows tr.row-selected td:first-child { box-shadow:inset 3px 0 0 var(--primary); }
+@media (max-width:560px) {
+  .bulk-toolbar { align-items:stretch; }
+  .bulk-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .bulk-actions .btn { width:100%; padding:8px 7px; font-size:11px; }
+}
+
+/* Registration-page refinement: account-creation layout, clean responsive split panel. */
+.public-page {
+  background: #F4F6FB;
+}
+.public-shell {
+  max-width: 1120px;
+  padding: 20px 22px 0;
+}
+body.public-page header.top.public-top {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 58px;
+  padding: 6px 2px 15px;
+  margin: 0 0 12px;
+  color: var(--text);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: left;
+}
+.public-top .brand {
+  flex: 0 0 auto;
+  color: #1E1B4B;
+  font-size: 29px;
+  line-height: 1;
+  letter-spacing: -.06em;
+}
+.public-top .brand span { color: #6366F1; }
+.public-top .brand-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.public-top .title {
+  margin: 0;
+  color: #1E293B;
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+.public-top .state {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid #E0E7FF;
+  border-radius: 999px;
+  color: #4338CA;
+  background: #EEF2FF;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .1em;
+  line-height: 1.4;
+}
+.header-assurance {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 8px 11px;
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  background: rgba(255,255,255,.8);
+  color: #475569;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.assurance-dot { width: 7px; height: 7px; border-radius: 50%; background: #10B981; box-shadow: 0 0 0 3px #D1FAE5; }
+.registration-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, .83fr) minmax(0, 1.17fr);
+  align-items: stretch;
+  gap: 18px;
+  margin-bottom: 4px;
+}
+.registration-aside {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(25px, 3.3vw, 38px);
+  border: 1px solid #312E81;
+  border-radius: 22px;
+  color: #fff;
+  background: #1E1B4B;
+  box-shadow: 0 12px 28px rgba(30,27,75,.10);
+}
+.aside-eyebrow { color: #C7D2FE; font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+.registration-aside h2 {
+  max-width: 380px;
+  margin: 17px 0 12px;
+  color: #fff;
+  font-size: clamp(25px, 3vw, 36px);
+  font-weight: 850;
+  line-height: 1.12;
+  letter-spacing: -.04em;
+}
+.aside-intro { margin: 0; max-width: 390px; color: #D9DDF7; font-size: 13px; line-height: 1.75; }
+.aside-steps { display: grid; gap: 16px; margin: 30px 0 27px; }
+.aside-step { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.aside-step > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(199,210,254,.35);
+  border-radius: 11px;
+  color: #E0E7FF;
+  background: rgba(255,255,255,.07);
+  font-size: 11px;
+  font-weight: 900;
+}
+.aside-step div { display: grid; gap: 2px; }
+.aside-step strong { color: #fff; font-size: 12px; font-weight: 800; }
+.aside-step small { color: #B9C1EE; font-size: 11px; line-height: 1.45; }
+.aside-assurance { display: flex; align-items: flex-start; gap: 10px; margin-top: auto; padding-top: 18px; border-top: 1px solid rgba(224,231,255,.18); }
+.assurance-check { display: grid; place-items: center; flex: 0 0 23px; width: 23px; height: 23px; border-radius: 50%; color: #D1FAE5; background: rgba(16,185,129,.18); font-size: 13px; font-weight: 900; }
+.aside-assurance p { margin: 0; color: #C7D2FE; font-size: 10px; line-height: 1.6; }
+.aside-assurance strong { color: #fff; font-size: 11px; }
+.form-card {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(22px, 3.2vw, 34px);
+  border: 1px solid #E3E7F0;
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgba(15,23,42,.045);
+}
+.form-card:hover { box-shadow: 0 12px 32px rgba(15,23,42,.06); }
+.form-intro { margin-bottom: 18px; }
+.form-intro h1 { max-width: 520px; margin-top: 10px; font-size: clamp(25px, 3vw, 32px); letter-spacing: -.045em; }
+.form-intro .intro { max-width: 520px; color: #64748B; font-size: 13px; line-height: 1.7; }
+.stepper { gap: 7px; padding: 12px 0 19px; margin-bottom: 20px; }
+.stepper-step { gap: 7px; min-height: 36px; }
+.stepper-step span { width: 29px; height: 29px; flex-basis: 29px; }
+.stepper-step b { font-size: 11px; white-space: nowrap; }
+.panel-heading { margin-bottom: 20px; }
+.panel-heading h2 { font-size: 18px; }
+.field { margin-bottom: 17px; }
+.field label { color: #334155; }
+.form-card input[type="text"], .form-card input[type="tel"], .form-card select {
+  min-height: 50px;
+  border-radius: 10px;
+  border-color: #DCE2ED;
+  background-color: #fff;
+}
+.form-card input:focus, .form-card select:focus { border-color: #818CF8; box-shadow: 0 0 0 4px rgba(99,102,241,.10); }
+.form-card .btn.primary { box-shadow: 0 4px 10px rgba(79,70,229,.13); }
+.form-footnote { margin-top: 16px; }
+.success-card { max-width: 720px; margin: 24px auto; border-radius: 20px; }
+.site-foot { max-width: 1120px; width: 100%; margin: 0 auto; padding: 19px 22px 24px; }
+
+@media (max-width: 800px) {
+  .public-shell { max-width: 680px; padding: 13px 15px 0; }
+  .registration-layout { grid-template-columns: minmax(0,1fr); gap: 13px; }
+  .form-card { order: 0; }
+  .registration-aside { order: 1; padding: 21px 23px; border-radius: 17px; }
+  .registration-aside h2 { max-width: 560px; margin-top: 10px; font-size: 24px; }
+  .aside-intro { max-width: 580px; font-size: 12px; }
+  .aside-steps { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 18px 0; }
+  .aside-step { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .aside-step strong { font-size: 11px; }
+  .aside-step small { font-size: 10px; }
+  .aside-assurance { margin-top: 0; }
+  .site-foot { padding: 17px 15px 22px; }
+}
+@media (max-width: 480px) {
+  .public-shell { padding: 8px 11px 0; }
+  body.public-page header.top.public-top { gap: 9px; min-height: 52px; padding: 7px 2px 13px; margin-bottom: 9px; }
+  .public-top .brand { font-size: 25px; }
+  .public-top .title { font-size: 12px; }
+  .public-top .state { font-size: 8px; padding: 2px 6px; }
+  .header-assurance { gap: 6px; padding: 7px 8px; font-size: 9px; }
+  .registration-layout { gap: 10px; }
+  .form-card { padding: 20px 17px; border-radius: 16px; }
+  .form-intro h1 { font-size: 25px; }
+  .form-intro .intro { font-size: 12px; }
+  .stepper { gap: 4px; padding-bottom: 16px; margin-bottom: 18px; }
+  .stepper-step { gap: 4px; }
+  .stepper-step span { width: 25px; height: 25px; flex-basis: 25px; font-size: 10px; }
+  .stepper-step b { font-size: 10px; }
+  .stepper-line { min-width: 3px; }
+  .wizard-actions { gap: 9px; }
+  .wizard-actions .btn.primary { min-width: 0; }
+  .registration-aside { padding: 19px 17px; }
+  .registration-aside h2 { font-size: 22px; }
+  .aside-steps { gap: 8px; }
+  .aside-step > span { width: 30px; height: 30px; flex-basis: 30px; border-radius: 9px; }
+  .aside-step strong { font-size: 10px; }
+  .aside-step small { font-size: 9px; }
+  .site-foot { gap: 8px; font-size: 10px; }
+}
